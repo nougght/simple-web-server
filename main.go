@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	// загрузка переменных окружения 
+	// загрузка переменных окружения
 	if err := godotenv.Load(".env"); err != nil {
 		fmt.Println("Не найден .env файл")
 		return
@@ -21,13 +21,34 @@ func main() {
 		fmt.Println("Не найден api ключ")
 		return
 	}
-	
+
 	// обработчик для курсов валют
 	currencyHandler := handlers.NewCurencyHandler(apiKey)
-
-	mux := http.NewServeMux()
+	// обработчик для заметок
+	notesHandler := handlers.NewNotesHandler()
 	// регистрация эндпоинтов
+	mux := http.NewServeMux()
+
+	// конвертация валют с использованием внешнего api
 	mux.HandleFunc("GET /currency", currencyHandler.ConvertCurrency)
 
-	http.ListenAndServe(":9000", mux)
+	// получение заметки по уникальному заголовку
+	mux.HandleFunc("GET /notes/{header}", notesHandler.GetNoteByHeader)
+
+	// // получение всех заметок
+	// mux.HandleFunc("GET /notes", notesHandler.GetAllNotes)
+
+	// создание заметки
+	mux.HandleFunc("POST /notes", notesHandler.PostNote)
+
+	// // изменение
+	// mux.HandleFunc("PUT /notes/{header}", notesHandler.PutNote)
+
+	// // удаление
+	// mux.HandleFunc("DELETE /notes/{header}", notesHandler.DeleteNote)
+
+	
+	fmt.Println("Сервер запущен")
+	err := http.ListenAndServe(":9000", mux)
+	fmt.Println(err)
 }
