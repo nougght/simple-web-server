@@ -1,4 +1,4 @@
-module simple_server
+module simple-server
 
 go 1.24.5
 

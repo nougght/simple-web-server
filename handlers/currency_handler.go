@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -80,6 +81,7 @@ func (h *CurrencyHandler) requestCurrencyRates(requestParams ApiRequestParams) (
 
 // обработка запроса конвертации валют
 func (h *CurrencyHandler) ConvertCurrency(w http.ResponseWriter, r *http.Request) {
+	log.Printf("%s %s", r.Method, r.URL)
 	amount := 1.0
 	str := r.URL.Query().Get("amount")
 	// если параметр не пуст - обрабатываем его, иначе используем 1.0 по умолчанию
@@ -88,7 +90,7 @@ func (h *CurrencyHandler) ConvertCurrency(w http.ResponseWriter, r *http.Request
 		if val, err := strconv.ParseFloat(str, 64); err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			w.Write([]byte("incorrect 'amount' parameter"))
-			fmt.Println(err.Error())
+			fmt.Print(err.Error() + "\n\n")
 			return
 		} else {
 			amount = val
@@ -106,7 +108,7 @@ func (h *CurrencyHandler) ConvertCurrency(w http.ResponseWriter, r *http.Request
 	// получаем курс нужных валют для конвертации
 	rates, err := h.requestCurrencyRates(requestParams)
 	if err != nil {
-		fmt.Println(err.Error())
+		fmt.Print(err.Error() + "\n\n")
 		// возвращаем ответ с ошибкой
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("currency rates request error"))
@@ -123,7 +125,7 @@ func (h *CurrencyHandler) ConvertCurrency(w http.ResponseWriter, r *http.Request
 	// кодируем результат в json
 	jsonResponse, err := json.Marshal(response)
 	if err != nil {
-		fmt.Println(err.Error())
+		fmt.Print(err.Error() + "\n\n")
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("json encoding error"))
 		return
@@ -132,6 +134,5 @@ func (h *CurrencyHandler) ConvertCurrency(w http.ResponseWriter, r *http.Request
 	w.WriteHeader(http.StatusOK)
 	w.Write(jsonResponse)
 
-	
-	fmt.Println("Ответ успешно отправлен\n")
+	fmt.Print("Ответ успешно отправлен\n\n")
 }
