@@ -19,7 +19,7 @@ func main() {
 		fmt.Println(notes)
 	}
 
-	log.Println("\nДобавление новых заметок")
+	log.Println("Добавление новых заметок")
 	newNotes := []Note{Note{Header: "my note 1", Body: "dfjsiefsdjflsehdjf"},
 		Note{Header: "my note 2", Body: "4536 dfdfj 343704"},
 		Note{Header: "my note 3", Body: ""}}
@@ -58,7 +58,7 @@ func main() {
 	} else {
 		fmt.Println(note)
 		// проверка соответствия
-		if *note != newNotes[2] {
+		if *note != newNotes[1] {
 			fmt.Print("Ответ не совпадает с ожидаемым\n\n")
 		} else {
 			fmt.Print("Ожидаемый результат\n\n")

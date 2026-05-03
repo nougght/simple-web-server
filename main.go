@@ -27,8 +27,9 @@ func main() {
 	// обработчик для заметок
 	notesHandler := handlers.NewNotesHandler()
 
-	// регистрация эндпоинтов
 	mux := http.NewServeMux()
+
+	// регистрация эндпоинтов
 
 	// конвертация валют с использованием внешнего api
 	mux.HandleFunc("GET /currency", currencyHandler.ConvertCurrency)

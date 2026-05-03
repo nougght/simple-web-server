@@ -144,6 +144,7 @@ func (h *NotesHandler) DeleteNote(w http.ResponseWriter, r *http.Request) {
 
 	header := r.PathValue("header")
 
+	// удаляем заметку по ключу из map
 	delete(h.notes, header)
 
 	w.WriteHeader(http.StatusOK)

@@ -41,6 +41,7 @@ func NewCurencyHandler(key string) *CurrencyHandler {
 		apiKey:     key,
 		apiBaseUrl: "https://api.freecurrencyapi.com/v1/latest",
 
+		// параметры по умолчанию для запроса курса валют
 		defaultApiParams: &ApiRequestParams{
 			BaseCurrency:     "RUB",
 			TargetCurrencies: []string{},
