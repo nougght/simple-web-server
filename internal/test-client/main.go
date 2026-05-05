@@ -58,7 +58,7 @@ func main() {
 	} else {
 		fmt.Println(note)
 		// проверка соответствия
-		if *note != newNotes[1] {
+		if *note != newNotes[2] {
 			fmt.Print("Ответ не совпадает с ожидаемым\n\n")
 		} else {
 			fmt.Print("Ожидаемый результат\n\n")

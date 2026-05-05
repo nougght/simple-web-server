@@ -7,12 +7,12 @@ import (
 
 	"github.com/joho/godotenv"
 
-	"simple-server/handlers"
+	"simple-server/internal/handler"
 )
 
 func main() {
 	// загрузка переменных окружения
-	if err := godotenv.Load(".env"); err != nil {
+	if err := godotenv.Load("../.env"); err != nil {
 		log.Println("Не найден .env файл")
 		return
 	}
@@ -23,9 +23,9 @@ func main() {
 	}
 
 	// обработчик для курсов валют
-	currencyHandler := handlers.NewCurencyHandler(apiKey)
+	currencyHandler := handler.NewCurencyHandler(apiKey)
 	// обработчик для заметок
-	notesHandler := handlers.NewNotesHandler()
+	notesHandler := handler.NewNotesHandler()
 
 	mux := http.NewServeMux()
 

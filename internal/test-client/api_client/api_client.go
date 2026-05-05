@@ -124,7 +124,7 @@ func (c *ApiClient) UpdateNote(note *Note) error {
 
 // запрос удаления заметки
 func (c *ApiClient) DeleteNote(header string) error {
-	fmt.Printf("DELETE /notes/%s \n%s", header)
+	fmt.Printf("DELETE /notes/%s", header)
 	req, _ := http.NewRequest(http.MethodDelete, fmt.Sprintf("%s/notes", c.baseUrl), nil)
 
 	resp, err := http.DefaultClient.Do(req)

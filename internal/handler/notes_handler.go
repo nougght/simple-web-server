@@ -1,4 +1,4 @@
-package handlers
+package handler
 
 import (
 	"encoding/json"
@@ -6,20 +6,17 @@ import (
 	"io"
 	"log"
 	"net/http"
+
+	"simple-server/internal/model"
 )
 
-type Note struct {
-	Header string `json:"header"`
-	Body   string `json:"body"`
-}
-
 type NotesHandler struct {
-	notes map[string]Note
+	notes map[string]model.Note
 }
 
 func NewNotesHandler() *NotesHandler {
 	return &NotesHandler{
-		notes: make(map[string]Note),
+		notes: make(map[string]model.Note),
 	}
 }
 
@@ -35,7 +32,7 @@ func (h *NotesHandler) PostNote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// декодируем тело запроса
-	var note Note
+	var note model.Note
 	if err := json.Unmarshal(rawBody, &note); err != nil {
 		log.Print(err.Error() + "\n\n")
 		http.Error(w, "json decoding error", http.StatusBadRequest)
@@ -59,7 +56,7 @@ func (h *NotesHandler) GetAllNotes(w http.ResponseWriter, r *http.Request) {
 	log.Printf("%s %s", r.Method, r.URL)
 
 	// заполняем список значениями из map
-	notesList := make([]Note, 0, len(h.notes))
+	notesList := make([]model.Note, 0, len(h.notes))
 	for _, note := range h.notes {
 		notesList = append(notesList, note)
 	}
@@ -84,26 +81,27 @@ func (h *NotesHandler) GetNoteByHeader(w http.ResponseWriter, r *http.Request) {
 
 	header := r.PathValue("header")
 	// если заметки с подобным заголовком нет
-	if note, exists := h.notes[header]; exists == false {
+	note, exists := h.notes[header]
+	if exists == false {
 		log.Print("Заметка не найдена\n\n")
 		http.Error(w, fmt.Sprintf("note with header '%s' not found", header), http.StatusNotFound)
 		return
-	} else {
-		// конвертируем структуру в json и отправляем ответ
-		jsonResponse, err := json.Marshal(note)
-		if err != nil {
-			log.Print(err.Error() + "\n\n")
-			http.Error(w, "json encoding error", http.StatusInternalServerError)
-			return
-		}
-
-		w.WriteHeader(http.StatusOK)
-		if _, err := w.Write(jsonResponse); err == nil {
-			log.Print("Ответ успешно отправлен\n\n")
-		} else {
-			log.Print(err.Error() + "\n\n")
-		}
 	}
+	// конвертируем структуру в json и отправляем ответ
+	jsonResponse, err := json.Marshal(note)
+	if err != nil {
+		log.Print(err.Error() + "\n\n")
+		http.Error(w, "json encoding error", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	if _, err := w.Write(jsonResponse); err == nil {
+		log.Print("Ответ успешно отправлен\n\n")
+	} else {
+		log.Print(err.Error() + "\n\n")
+	}
+
 }
 
 // Изменение заметки по его заголовку
@@ -118,7 +116,7 @@ func (h *NotesHandler) PutNote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var note Note
+	var note model.Note
 	if err := json.Unmarshal(raw, &note); err != nil {
 		log.Print(err.Error() + "\n\n")
 		http.Error(w, "json decoding error", http.StatusBadRequest)
