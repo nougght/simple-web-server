@@ -46,6 +46,7 @@ func (h *NotesHandler) PostNote(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err = h.service.AddNote(note); err != nil {
+		log.Println(err.Error())
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -82,6 +83,7 @@ func (h *NotesHandler) GetNoteByHeader(w http.ResponseWriter, r *http.Request) {
 
 	note, err := h.service.GetNoteByHeader(header)
 	if err != nil {
+		log.Println(err.Error())
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -128,6 +130,7 @@ func (h *NotesHandler) PutNote(w http.ResponseWriter, r *http.Request) {
 	}
 	// если все ок - обновляем заметку
 	if err := h.service.UpdateNote(note); err != nil {
+		log.Println(err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -142,6 +145,7 @@ func (h *NotesHandler) DeleteNote(w http.ResponseWriter, r *http.Request) {
 	header := r.PathValue("header")
 
 	if err := h.service.DeleteNote(header); err != nil {
+		log.Println(err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

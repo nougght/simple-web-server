@@ -53,6 +53,6 @@ func main() {
 	mux.HandleFunc("DELETE /notes/{header}", notesHandler.DeleteNote)
 
 	log.Println("Сервер запущен")
-	err := http.ListenAndServe(":8080", mux)
+	err := http.ListenAndServe(":8081", mux)
 	log.Println(err)
 }
