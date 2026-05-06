@@ -36,7 +36,7 @@ func (h *CurrencyHandler) parseConvertParameters(r *http.Request) (*model.Conver
 	if str != "" {
 		// если параметр не является числом - возвращаем ошибку
 		if val, err := strconv.ParseFloat(str, 64); err != nil {
-			fmt.Print(err.Error() + "\n\n")
+			log.Print(err.Error() + "\n\n")
 			return nil, fmt.Errorf("'amount' parsing failed: %e", err)
 		} else {
 			params.Amount = val
@@ -75,7 +75,7 @@ func (h *CurrencyHandler) ConvertCurrency(w http.ResponseWriter, r *http.Request
 	// кодируем результат в json
 	jsonResponse, err := json.Marshal(result)
 	if err != nil {
-		fmt.Print(err.Error() + "\n\n")
+		log.Print(err.Error() + "\n\n")
 		http.Error(w, "json encoding error", http.StatusInternalServerError)
 		return
 	}

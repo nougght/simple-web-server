@@ -9,11 +9,13 @@ import (
 
 	"simple-server/internal/handler"
 	"simple-server/internal/service/currency"
+	"simple-server/internal/service/notes"
+	"simple-server/internal/storage"
 )
 
 func main() {
 	// загрузка переменных окружения
-	if err := godotenv.Load("../.env"); err != nil {
+	if err := godotenv.Load(".env"); err != nil {
 		log.Println("Не найден .env файл")
 		return
 	}
@@ -23,12 +25,14 @@ func main() {
 		return
 	}
 
-	// сервис и обработчик для валют
+	// обработка валют
 	currencyService := currency.NewCurrencyService(apiKey)
 	currencyHandler := handler.NewCurencyHandler(currencyService)
 
-	// обработчик для заметок
-	notesHandler := handler.NewNotesHandler()
+	// обработка заметок
+	storage := storage.NewNotesStorage()
+	notesService := notes.NewNotesService(storage)
+	notesHandler := handler.NewNotesHandler(notesService)
 
 	mux := http.NewServeMux()
 
