@@ -4,13 +4,14 @@ import (
 	"fmt"
 )
 
-type ConvertCurrencyRequestParams struct {
+type ConvertCurrencyParams struct {
 	Amount           float64  // сумма конвертации
 	BaseCurrency     string   // исходная валюта
 	TargetCurrencies []string // список запрашиваемых валют
 }
 
-func (p *ConvertCurrencyRequestParams) Validate() error {
+// проверка на корректность параметров
+func (p *ConvertCurrencyParams) Validate() error {
 	if p.Amount < 0 {
 		return fmt.Errorf("negative amount")
 	}

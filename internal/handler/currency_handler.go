@@ -3,65 +3,30 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
-	"net/url"
 	"simple-server/internal/model"
-	"simple-server/internal/util"
+	"simple-server/internal/service/currency"
 	"strconv"
 )
 
 // используется бесплатный api для получения курса валют - https://freecurrencyapi.com/docs/
 
-// параметры для запроса
-
 type CurrencyHandler struct {
-	apiBaseUrl string
-	apiKey     string
+	// сервис с бизнес-логикой
+	service *currency.CurrencyService
 }
 
-func NewCurencyHandler(key string) *CurrencyHandler {
+func NewCurencyHandler(service *currency.CurrencyService) *CurrencyHandler {
 	return &CurrencyHandler{
-		apiKey:     key,
-		apiBaseUrl: "https://api.freecurrencyapi.com/v1/latest",
+		service: service,
 	}
 }
 
-// внутренний метод - запрос курса валют через внешний api
-func (h *CurrencyHandler) requestCurrencyRates(baseCurrency string, targetCurrencies []string) (map[string]float64, error) {
-	params := url.Values{}
-	params.Add("apikey", h.apiKey)
-	params.Add("base_currency", baseCurrency)
-	params.Add("currencies", util.SliceToCommaString(targetCurrencies))
-
-	// добавляем параметры к url и отправляем запрос
-	resp, err := http.Get(fmt.Sprintf("%s?%s", h.apiBaseUrl, params.Encode()))
-	if err != nil {
-		return nil, err
-	}
-
-	defer resp.Body.Close()
-
-	// читаем тело запроса
-	raw, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-	fmt.Println("Получены курсы валют: " + string(raw))
-
-	var respBody model.CurrencyRatesResponse
-	// декодируем json
-	if err := json.Unmarshal(raw, &respBody); err != nil {
-		return nil, err
-	}
-
-	return respBody.Data, nil
-}
-
-func (h *CurrencyHandler) parseConvertParameters(r *http.Request) (*model.ConvertCurrencyRequestParams, error) {
+// извлечение параметров из запроса
+func (h *CurrencyHandler) parseConvertParameters(r *http.Request) (*model.ConvertCurrencyParams, error) {
 	// параметры по умолчанию
-	params := &model.ConvertCurrencyRequestParams{
+	params := &model.ConvertCurrencyParams{
 		Amount:           1.0,
 		BaseCurrency:     "RUB",
 		TargetCurrencies: []string{},
@@ -77,7 +42,6 @@ func (h *CurrencyHandler) parseConvertParameters(r *http.Request) (*model.Conver
 			params.Amount = val
 		}
 	}
-
 	params.BaseCurrency = r.URL.Query().Get("base")
 	params.TargetCurrencies = r.URL.Query()["currencies"]
 
@@ -100,31 +64,26 @@ func (h *CurrencyHandler) ConvertCurrency(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// получаем курс нужных валют для конвертации
-	rates, err := h.requestCurrencyRates(params.BaseCurrency, params.TargetCurrencies)
+	var result model.ConvertCurrencyResponse
+	result, err = h.service.ConvertCurrency(params)
 	if err != nil {
-		fmt.Print(err.Error() + "\n\n")
 		// возвращаем ответ с ошибкой
-		http.Error(w, "currency rates request error", http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// инициализируем словарь для результатов
-	response := model.ConvertCurrencyResponse{}
-	// конвертация по курсу
-	for currency, rate := range rates {
-		response[currency] = params.Amount * rate
-	}
-
 	// кодируем результат в json
-	jsonResponse, err := json.Marshal(response)
+	jsonResponse, err := json.Marshal(result)
 	if err != nil {
 		fmt.Print(err.Error() + "\n\n")
 		http.Error(w, "json encoding error", http.StatusInternalServerError)
 		return
 	}
 	// отправляем ответ с успешным статусом
-	w.Write(jsonResponse)
-
-	fmt.Print("Ответ успешно отправлен\n\n")
+	_, err = w.Write(jsonResponse)
+	if err != nil {
+		log.Print(err.Error() + "\n\n")
+	} else {
+		log.Print("Ответ успешно отправлен\n\n")
+	}
 }

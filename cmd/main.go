@@ -8,6 +8,7 @@ import (
 	"github.com/joho/godotenv"
 
 	"simple-server/internal/handler"
+	"simple-server/internal/service/currency"
 )
 
 func main() {
@@ -22,8 +23,10 @@ func main() {
 		return
 	}
 
-	// обработчик для курсов валют
-	currencyHandler := handler.NewCurencyHandler(apiKey)
+	// сервис и обработчик для валют
+	currencyService := currency.NewCurrencyService(apiKey)
+	currencyHandler := handler.NewCurencyHandler(currencyService)
+
 	// обработчик для заметок
 	notesHandler := handler.NewNotesHandler()
 
