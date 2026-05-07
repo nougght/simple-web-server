@@ -9,7 +9,7 @@ import (
 
 // проверка работы сервера
 func main() {
-	api := NewApiClient("http://127.0.0.1:8081")
+	api := NewApiClient("http://127.0.0.1:8085")
 
 	log.Println("Запрос списка заметок")
 	notes, err := api.FetchAllNotes()

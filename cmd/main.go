@@ -5,22 +5,21 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/joho/godotenv"
-
 	"simple-server/internal/handler"
 	"simple-server/internal/service/currency"
 	"simple-server/internal/service/notes"
 	"simple-server/internal/storage"
+
+	"github.com/joho/godotenv"
 )
 
 func main() {
 	// загрузка переменных окружения
-	if err := godotenv.Load(".env"); err != nil {
-		log.Println("Не найден .env файл")
-		return
+	if err := godotenv.Load(); err != nil {
+		log.Println(err.Error())
 	}
 	apiKey, exists := os.LookupEnv("FREECURRENCY_API_KEY")
-	if exists == false {
+	if !exists {
 		log.Println("Не найден api ключ")
 		return
 	}
@@ -53,6 +52,6 @@ func main() {
 	mux.HandleFunc("DELETE /notes/{header}", notesHandler.DeleteNote)
 
 	log.Println("Сервер запущен")
-	err := http.ListenAndServe(":8081", mux)
+	err := http.ListenAndServe(":8085", mux)
 	log.Println(err)
 }

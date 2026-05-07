@@ -21,7 +21,8 @@ func NewNotesStorage() *NotesStorage {
 func (s *NotesStorage) AddNote(note model.Note) error {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
-	if _, exists := s.notes[note.Header]; exists == true {
+	// проверка существования осуществляется в хранилище, чтобы избежать гонки
+	if _, exists := s.notes[note.Header]; exists {
 		return fmt.Errorf("note with header '%s' already exists", note.Header)
 	}
 	s.notes[note.Header] = note
@@ -43,7 +44,7 @@ func (s *NotesStorage) GetNoteByHeader(header string) (*model.Note, error) {
 	s.mtx.RLock()
 	note, exists := s.notes[header]
 	s.mtx.RUnlock()
-	if exists == false {
+	if !exists {
 		return nil, fmt.Errorf("note with header '%s' not found", header)
 	}
 	return &note, nil
@@ -61,4 +62,11 @@ func (s *NotesStorage) DeleteNoteByHeader(header string) error {
 	delete(s.notes, header)
 	s.mtx.Unlock()
 	return nil
+}
+
+func (s *NotesStorage) NoteExists(header string) bool {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	_, exists := s.notes[header]
+	return exists
 }

@@ -3,6 +3,8 @@ package util
 import (
 	"encoding/json"
 	"fmt"
+	"log"
+	"net/http"
 	"strings"
 )
 
@@ -16,4 +18,11 @@ func DecodeJson(rawData []byte, obj any) error {
 		return fmt.Errorf("json decoding error: %s", err.Error())
 	}
 	return nil
+}
+
+// закрытие тела ответа с обработкой ошибки
+func CloseBody(resp *http.Response) {
+	if err := resp.Body.Close(); err != nil {
+		log.Printf("response body close error: %s", err.Error())
+	}
 }

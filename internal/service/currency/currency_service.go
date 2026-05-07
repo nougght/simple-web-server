@@ -35,7 +35,7 @@ func (s *CurrencyService) requestCurrencyRates(baseCurrency string, targetCurren
 		return nil, err
 	}
 
-	defer resp.Body.Close()
+	defer util.CloseBody(resp)
 
 	// читаем тело запроса
 	raw, err := io.ReadAll(resp.Body)

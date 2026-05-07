@@ -111,6 +111,8 @@ func (h *NotesHandler) parsePutNoteRequest(r *http.Request) (*model.Note, error)
 	if err != nil {
 		return nil, err
 	}
+
+	// если заголовок из URL и тела не совпадает
 	if header != note.Header {
 		return nil, fmt.Errorf("header in URL '%s' doesn't match header in body '%s'", header, note.Header)
 	}

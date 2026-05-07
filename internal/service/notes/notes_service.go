@@ -1,6 +1,7 @@
 package notes
 
 import (
+	"fmt"
 	"simple-server/internal/model"
 	"simple-server/internal/storage"
 )
@@ -16,6 +17,9 @@ func NewNotesService(storage *storage.NotesStorage) *NotesService {
 }
 
 func (s *NotesService) AddNote(note *model.Note) error {
+	if note.Header == "" {
+		return fmt.Errorf("header can't be empty")
+	}
 	return s.storage.AddNote(*note)
 }
 
@@ -32,5 +36,10 @@ func (s *NotesService) UpdateNote(note *model.Note) error {
 }
 
 func (s *NotesService) DeleteNote(header string) error {
+	// если заметки нет - ничего не делаем
+	// (или возвращаем ошибку если надо)
+	if !s.storage.NoteExists(header) {
+		return nil
+	}
 	return s.storage.DeleteNoteByHeader(header)
 }
