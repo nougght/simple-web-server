@@ -13,4 +13,5 @@ WORKDIR /app
 # копируем исполняемый файл
 COPY --from=build /build/app ./app
 
-CMD ["./app"]
+# с CMD не работал graceful shutdown
+ENTRYPOINT ["./app"]
