@@ -17,7 +17,7 @@ type CurrencyHandler struct {
 	service *currency.CurrencyService
 }
 
-func NewCurencyHandler(service *currency.CurrencyService) *CurrencyHandler {
+func NewCurrencyHandler(service *currency.CurrencyService) *CurrencyHandler {
 	return &CurrencyHandler{
 		service: service,
 	}

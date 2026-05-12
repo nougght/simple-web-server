@@ -19,7 +19,7 @@ func (p *ConvertCurrencyParams) Validate() error {
 		return fmt.Errorf("invalid base currency")
 	}
 	for _, c := range p.TargetCurrencies {
-		if len(c) != 3 && len(c) != 0 {
+		if len(c) != 3 {
 			return fmt.Errorf("invalid target currency %s", c)
 		}
 	}

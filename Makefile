@@ -1,8 +1,10 @@
 
-.PHONY: all lint build run
+.PHONY: all lint build run test
 
-# проверка, сборка и запуск в контейнере
-all: lint docker-build docker-up
+# проверка, тестирование, сборка и запуск в контейнере
+all: lint test docker-build docker-up
+
+all-windows: lint test build-windows run-windows
 
 # сборка под windows
 build-windows:
@@ -15,6 +17,10 @@ run-windows:
 lint:
 	docker run -t --rm -v .:/app -w /app golangci/golangci-lint:v2.12.2 \
 	golangci-lint run --no-config -E govet,staticcheck
+
+# запуск тестов
+test:
+	go test -v --cover ./...
 
 # сборка образа
 docker-build:

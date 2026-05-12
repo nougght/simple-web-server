@@ -18,6 +18,17 @@ func NewNotesStorage() *NotesStorage {
 	}
 }
 
+func NewNotesStorageWithData(notesList []model.Note) *NotesStorage {
+	notes := make(map[string]model.Note, len(notesList))
+	for _, elem := range notesList {
+		notes[elem.Header] = elem
+	}
+
+	return &NotesStorage{
+		notes: notes,
+	}
+}
+
 func (s *NotesStorage) AddNote(note model.Note) error {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()

@@ -20,8 +20,16 @@ FREECURRENCY_API_KEY=fca_live_8lWYrQ3cQDWZob9q0evmwYSrRYH6mtdPU5XTMfJc
 
 ---
 
-### Для проверки сервера добавил тестовый клиент `test-client/main.go`
+### Запуск с линтером и тестами:
+#### В контейнере
+``` bash
+    make all
+```
 
+#### Без контейнера на windows
+``` bash
+    make all-windows
+```
 ---
 
 ## Эндпоинты
