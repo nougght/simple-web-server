@@ -9,7 +9,7 @@ import (
 
 // проверка работы сервера
 func main() {
-	api := NewApiClient("http://127.0.0.1:8080")
+	api := NewApiClient("http://127.0.0.1:8085")
 
 	log.Println("Запрос списка заметок")
 	notes, err := api.FetchAllNotes()
@@ -58,7 +58,7 @@ func main() {
 	} else {
 		fmt.Println(note)
 		// проверка соответствия
-		if *note != newNotes[1] {
+		if *note != newNotes[2] {
 			fmt.Print("Ответ не совпадает с ожидаемым\n\n")
 		} else {
 			fmt.Print("Ожидаемый результат\n\n")

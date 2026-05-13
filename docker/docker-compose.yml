@@ -1,0 +1,16 @@
+
+services:
+  server:
+    build: 
+      # контекст сборки для доступа к .mod 
+      context: ..
+      dockerfile: /docker/Dockerfile
+    image: simple-server
+
+    # порт для доступа к серверу
+    ports:
+      - "8085:8085"
+    # переменные окружения
+    env_file:
+      - ../.env
+    # environment:
