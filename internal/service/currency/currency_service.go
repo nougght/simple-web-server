@@ -15,10 +15,10 @@ type CurrencyService struct {
 	apiKey               string
 }
 
-func NewCurrencyService(apiKey string) *CurrencyService {
+func NewCurrencyService(config *model.Config) *CurrencyService {
 	return &CurrencyService{
-		currencyRatesBaseUrl: "https://api.freecurrencyapi.com/v1/latest",
-		apiKey:               apiKey,
+		currencyRatesBaseUrl: config.FreecurrencyApiUrl,
+		apiKey:               config.FreecurrencyApiKey,
 	}
 }
 

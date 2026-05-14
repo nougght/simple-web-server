@@ -5,17 +5,15 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
 	"simple-server/internal/handler"
+	"simple-server/internal/model"
 	"simple-server/internal/service/currency"
 	"simple-server/internal/service/notes"
 	"simple-server/internal/storage"
-
-	"github.com/joho/godotenv"
 )
 
 func registerRoutes(mux *http.ServeMux, currencyHandler *handler.CurrencyHandler, notesHandler *handler.NotesHandler) {
@@ -35,23 +33,19 @@ func registerRoutes(mux *http.ServeMux, currencyHandler *handler.CurrencyHandler
 }
 
 func main() {
-	// загрузка переменных окружения
-	if err := godotenv.Load(); err != nil {
-		log.Println(err.Error())
-	}
-	apiKey, exists := os.LookupEnv("FREECURRENCY_API_KEY")
-	if !exists {
-		log.Println("Не найден api ключ")
-		return
+	config, err := model.LoadConfig()
+	if err != nil {
+		log.Println("ошибка при загрузке конфигурации")
+		panic(err)
 	}
 
 	// обработка валют
-	currencyService := currency.NewCurrencyService(apiKey)
+	currencyService := currency.NewCurrencyService(config)
 	currencyHandler := handler.NewCurrencyHandler(currencyService)
 
 	// обработка заметок
 	storage := storage.NewNotesStorage()
-	notesService := notes.NewNotesService(storage)
+	notesService := notes.NewNotesService(config, storage)
 	notesHandler := handler.NewNotesHandler(notesService)
 
 	mux := http.NewServeMux()
@@ -89,7 +83,7 @@ func main() {
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 	// отключаем неактивные соединения и ждем завершения запросов
-	err := server.Shutdown(shutdownCtx)
+	err = server.Shutdown(shutdownCtx)
 
 	// если запросы не завершились, отменяем контекст сервера
 	stopServer()

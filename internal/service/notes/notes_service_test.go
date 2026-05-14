@@ -10,7 +10,7 @@ import (
 
 func TestAddNote(t *testing.T) {
 	storage := storage.NewNotesStorage()
-	service := NewNotesService(storage)
+	service := NewNotesService(&model.Config{}, storage)
 
 	notes := []model.Note{
 		{Header: "header1", Body: "some body"},

@@ -7,11 +7,13 @@ import (
 )
 
 type NotesService struct {
+	config  *model.Config
 	storage *storage.NotesStorage
 }
 
-func NewNotesService(storage *storage.NotesStorage) *NotesService {
+func NewNotesService(config *model.Config, storage *storage.NotesStorage) *NotesService {
 	return &NotesService{
+		config:  config,
 		storage: storage,
 	}
 }
