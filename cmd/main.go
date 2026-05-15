@@ -9,28 +9,10 @@ import (
 	"syscall"
 	"time"
 
-	"simple-server/internal/handler"
 	"simple-server/internal/model"
-	"simple-server/internal/service/currency"
-	"simple-server/internal/service/notes"
-	"simple-server/internal/storage"
+	"simple-server/internal/service"
+	"simple-server/internal/handler"
 )
-
-func registerRoutes(mux *http.ServeMux, currencyHandler *handler.CurrencyHandler, notesHandler *handler.NotesHandler) {
-	// конвертация валют с использованием внешнего api
-	mux.HandleFunc("GET /currency", currencyHandler.ConvertCurrency)
-
-	// получение заметки по уникальному заголовку
-	mux.HandleFunc("GET /notes/{header}", notesHandler.GetNoteByHeader)
-	// // получение всех заметок
-	mux.HandleFunc("GET /notes", notesHandler.GetAllNotes)
-	// создание заметки
-	mux.HandleFunc("POST /notes", notesHandler.PostNote)
-	// изменение
-	mux.HandleFunc("PUT /notes/{header}", notesHandler.PutNote)
-	// удаление
-	mux.HandleFunc("DELETE /notes/{header}", notesHandler.DeleteNote)
-}
 
 func main() {
 	config, err := model.LoadConfig()
@@ -39,19 +21,8 @@ func main() {
 		panic(err)
 	}
 
-	// обработка валют
-	currencyService := currency.NewCurrencyService(config)
-	currencyHandler := handler.NewCurrencyHandler(currencyService)
-
-	// обработка заметок
-	storage := storage.NewNotesStorage()
-	notesService := notes.NewNotesService(config, storage)
-	notesHandler := handler.NewNotesHandler(notesService)
-
-	mux := http.NewServeMux()
-
-	// регистрация эндпоинтов
-	registerRoutes(mux, currencyHandler, notesHandler)
+	services := service.GetServices(config)
+	mux, _ := handler.GetHandlers(services)
 
 	// перехват сигналов завершения работы
 	rootCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
@@ -92,5 +63,4 @@ func main() {
 		time.Sleep(time.Second * 3)
 	}
 	log.Println("Сервер остановлен")
-
 }

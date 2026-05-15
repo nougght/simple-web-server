@@ -7,29 +7,29 @@ import (
 )
 
 // хранилище для заметок
-type NotesStorage struct {
+type NoteStorage struct {
 	notes map[string]model.Note
 	mtx   sync.RWMutex
 }
 
-func NewNotesStorage() *NotesStorage {
-	return &NotesStorage{
+func NewNoteStorage() *NoteStorage {
+	return &NoteStorage{
 		notes: make(map[string]model.Note),
 	}
 }
 
-func NewNotesStorageWithData(notesList []model.Note) *NotesStorage {
+func NewNoteStorageWithData(notesList []model.Note) *NoteStorage {
 	notes := make(map[string]model.Note, len(notesList))
 	for _, elem := range notesList {
 		notes[elem.Header] = elem
 	}
 
-	return &NotesStorage{
+	return &NoteStorage{
 		notes: notes,
 	}
 }
 
-func (s *NotesStorage) AddNote(note model.Note) error {
+func (s *NoteStorage) AddNote(note model.Note) error {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 	// проверка существования осуществляется в хранилище, чтобы избежать гонки
@@ -40,7 +40,7 @@ func (s *NotesStorage) AddNote(note model.Note) error {
 	return nil
 }
 
-func (s *NotesStorage) GetNotes() []model.Note {
+func (s *NoteStorage) GetNotes() []model.Note {
 	// заполняем список значениями из map
 	notesList := make([]model.Note, 0, len(s.notes))
 	s.mtx.RLock()
@@ -51,7 +51,7 @@ func (s *NotesStorage) GetNotes() []model.Note {
 	return notesList
 }
 
-func (s *NotesStorage) GetNoteByHeader(header string) (*model.Note, error) {
+func (s *NoteStorage) GetNoteByHeader(header string) (*model.Note, error) {
 	s.mtx.RLock()
 	note, exists := s.notes[header]
 	s.mtx.RUnlock()
@@ -61,21 +61,21 @@ func (s *NotesStorage) GetNoteByHeader(header string) (*model.Note, error) {
 	return &note, nil
 }
 
-func (s *NotesStorage) UpdateNote(note model.Note) error {
+func (s *NoteStorage) UpdateNote(note model.Note) error {
 	s.mtx.Lock()
 	s.notes[note.Header] = note
 	s.mtx.Unlock()
 	return nil
 }
 
-func (s *NotesStorage) DeleteNoteByHeader(header string) error {
+func (s *NoteStorage) DeleteNoteByHeader(header string) error {
 	s.mtx.Lock()
 	delete(s.notes, header)
 	s.mtx.Unlock()
 	return nil
 }
 
-func (s *NotesStorage) NoteExists(header string) bool {
+func (s *NoteStorage) NoteExists(header string) bool {
 	s.mtx.RLock()
 	defer s.mtx.RUnlock()
 	_, exists := s.notes[header]

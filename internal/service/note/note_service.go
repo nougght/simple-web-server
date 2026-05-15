@@ -1,4 +1,4 @@
-package notes
+package note
 
 import (
 	"fmt"
@@ -6,38 +6,38 @@ import (
 	"simple-server/internal/storage"
 )
 
-type NotesService struct {
+type NoteService struct {
 	config  *model.Config
-	storage *storage.NotesStorage
+	storage *storage.NoteStorage
 }
 
-func NewNotesService(config *model.Config, storage *storage.NotesStorage) *NotesService {
-	return &NotesService{
+func NewNoteService(config *model.Config, storage *storage.NoteStorage) *NoteService {
+	return &NoteService{
 		config:  config,
 		storage: storage,
 	}
 }
 
-func (s *NotesService) AddNote(note *model.Note) error {
+func (s *NoteService) AddNote(note *model.Note) error {
 	if note.Header == "" {
 		return fmt.Errorf("header can't be empty")
 	}
 	return s.storage.AddNote(*note)
 }
 
-func (s *NotesService) GetAllNotes() []model.Note {
+func (s *NoteService) GetAllNotes() []model.Note {
 	return s.storage.GetNotes()
 }
 
-func (s *NotesService) GetNoteByHeader(header string) (*model.Note, error) {
+func (s *NoteService) GetNoteByHeader(header string) (*model.Note, error) {
 	return s.storage.GetNoteByHeader(header)
 }
 
-func (s *NotesService) UpdateNote(note *model.Note) error {
+func (s *NoteService) UpdateNote(note *model.Note) error {
 	return s.storage.UpdateNote(*note)
 }
 
-func (s *NotesService) DeleteNote(header string) error {
+func (s *NoteService) DeleteNote(header string) error {
 	// если заметки нет - ничего не делаем
 	// (или возвращаем ошибку если надо)
 	if !s.storage.NoteExists(header) {

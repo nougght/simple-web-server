@@ -8,21 +8,20 @@ import (
 	"net/http"
 
 	"simple-server/internal/model"
-	"simple-server/internal/service/notes"
 	"simple-server/internal/util"
 )
 
-type NotesHandler struct {
-	service *notes.NotesService
+type NoteHandler struct {
+	service model.NoteService
 }
 
-func NewNotesHandler(service *notes.NotesService) *NotesHandler {
-	return &NotesHandler{
+func NewNoteHandler(service model.NoteService) *NoteHandler {
+	return &NoteHandler{
 		service: service,
 	}
 }
 
-func (h *NotesHandler) parseNoteFromRequest(r *http.Request) (*model.Note, error) {
+func (h *NoteHandler) parseNoteFromRequest(r *http.Request) (*model.Note, error) {
 	raw, err := io.ReadAll(r.Body)
 	if err != nil {
 		return nil, fmt.Errorf("body reading error")
@@ -35,7 +34,7 @@ func (h *NotesHandler) parseNoteFromRequest(r *http.Request) (*model.Note, error
 }
 
 // Добавление заметки
-func (h *NotesHandler) PostNote(w http.ResponseWriter, r *http.Request) {
+func (h *NoteHandler) PostNote(w http.ResponseWriter, r *http.Request) {
 	log.Printf("%s %s", r.Method, r.URL)
 
 	note, err := h.parseNoteFromRequest(r)
@@ -56,7 +55,7 @@ func (h *NotesHandler) PostNote(w http.ResponseWriter, r *http.Request) {
 }
 
 // получение списка заметок
-func (h *NotesHandler) GetAllNotes(w http.ResponseWriter, r *http.Request) {
+func (h *NoteHandler) GetAllNotes(w http.ResponseWriter, r *http.Request) {
 	log.Printf("%s %s", r.Method, r.URL)
 
 	notesList := h.service.GetAllNotes()
@@ -76,7 +75,7 @@ func (h *NotesHandler) GetAllNotes(w http.ResponseWriter, r *http.Request) {
 }
 
 // получение заметки по его заголовку
-func (h *NotesHandler) GetNoteByHeader(w http.ResponseWriter, r *http.Request) {
+func (h *NoteHandler) GetNoteByHeader(w http.ResponseWriter, r *http.Request) {
 	log.Printf("%s %s", r.Method, r.URL)
 
 	header := r.PathValue("header")
@@ -105,7 +104,7 @@ func (h *NotesHandler) GetNoteByHeader(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (h *NotesHandler) parsePutNoteRequest(r *http.Request) (*model.Note, error) {
+func (h *NoteHandler) parsePutNoteRequest(r *http.Request) (*model.Note, error) {
 	header := r.PathValue("header")
 	note, err := h.parseNoteFromRequest(r)
 	if err != nil {
@@ -121,7 +120,7 @@ func (h *NotesHandler) parsePutNoteRequest(r *http.Request) (*model.Note, error)
 }
 
 // Изменение заметки по его заголовку
-func (h *NotesHandler) PutNote(w http.ResponseWriter, r *http.Request) {
+func (h *NoteHandler) PutNote(w http.ResponseWriter, r *http.Request) {
 	log.Printf("%s %s", r.Method, r.URL)
 
 	note, err := h.parsePutNoteRequest(r)
@@ -142,7 +141,7 @@ func (h *NotesHandler) PutNote(w http.ResponseWriter, r *http.Request) {
 }
 
 // удаление заметки
-func (h *NotesHandler) DeleteNote(w http.ResponseWriter, r *http.Request) {
+func (h *NoteHandler) DeleteNote(w http.ResponseWriter, r *http.Request) {
 	log.Printf("%s %s", r.Method, r.URL)
 	header := r.PathValue("header")
 

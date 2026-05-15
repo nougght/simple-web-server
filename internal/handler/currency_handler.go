@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 	"simple-server/internal/model"
-	"simple-server/internal/service/currency"
 	"strconv"
 )
 
@@ -14,10 +13,10 @@ import (
 
 type CurrencyHandler struct {
 	// сервис с бизнес-логикой
-	service *currency.CurrencyService
+	service model.CurrencyService
 }
 
-func NewCurrencyHandler(service *currency.CurrencyService) *CurrencyHandler {
+func NewCurrencyHandler(service model.CurrencyService) *CurrencyHandler {
 	return &CurrencyHandler{
 		service: service,
 	}
