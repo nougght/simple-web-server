@@ -35,7 +35,7 @@ func main() {
 	errChan := make(chan error)
 	go func() {
 		<-rootCtx.Done()
-		log.Println("Остановка сервара, ожидание завершения текущих запросов")
+		log.Println("Остановка сервера, ожидание завершения текущих запросов")
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 		defer cancel()
 		err := server.Shutdown(shutdownCtx)
