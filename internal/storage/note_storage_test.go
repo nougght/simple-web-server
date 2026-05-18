@@ -10,12 +10,12 @@ import (
 
 // проверка добавления заметки
 func TestAdd(t *testing.T) {
-	storage := NewNotesStorage()
+	storage := NewNoteStorage()
 
 	notes := []model.Note{
-		model.Note{Header: "header123", Body: "some body"},
-		model.Note{Header: "header123", Body: ""},
-		model.Note{Header: "other", Body: "dfdfs"},
+		{Header: "header123", Body: "some body"},
+		{Header: "header123", Body: ""},
+		{Header: "other", Body: "dfdfs"},
 	}
 
 	addTests := []struct {
@@ -65,7 +65,7 @@ func TestGet(t *testing.T) {
 		model.Note{Header: "header2", Body: "sdsfsdfds"},
 	}
 	// создаем хранилище с заполненными данными
-	storage := NewNotesStorageWithData(notes)
+	storage := NewNoteStorageWithData(notes)
 
 	tests := []struct {
 		name          string
@@ -101,7 +101,7 @@ func TestUpdate(t *testing.T) {
 	notes := []model.Note{
 		model.Note{Header: "header1", Body: "some body"},
 	}
-	storage := NewNotesStorageWithData(notes)
+	storage := NewNoteStorageWithData(notes)
 
 	newNote := model.Note{Header: "header1", Body: "new body"}
 
@@ -121,7 +121,7 @@ func TestDelete(t *testing.T) {
 		model.Note{Header: "header1", Body: "some body"},
 		model.Note{Header: "header2", Body: "sfjdsiofj"},
 	}
-	storage := NewNotesStorageWithData(notes)
+	storage := NewNoteStorageWithData(notes)
 
 	// обновляем заметку (с тем же заголовком)
 	err := storage.DeleteNoteByHeader(notes[0].Header)
