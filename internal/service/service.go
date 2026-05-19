@@ -4,7 +4,7 @@ import (
 	"simple-server/internal/model"
 	"simple-server/internal/service/currency"
 	"simple-server/internal/service/note"
-	"simple-server/internal/storage"
+	storage "simple-server/internal/storage/memory"
 )
 
 type Service struct {

@@ -2,7 +2,7 @@ package note
 
 import (
 	"simple-server/internal/model"
-	"simple-server/internal/storage"
+	storage "simple-server/internal/storage/memory"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
