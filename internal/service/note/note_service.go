@@ -2,15 +2,16 @@ package note
 
 import (
 	"fmt"
+	"simple-server/internal/config"
 	"simple-server/internal/model"
 )
 
 type NoteService struct {
-	config  *model.Config
+	config  *config.Config
 	storage NoteStorage
 }
 
-func NewNoteService(config *model.Config, storage NoteStorage) *NoteService {
+func NewNoteService(config *config.Config, storage NoteStorage) *NoteService {
 	return &NoteService{
 		config:  config,
 		storage: storage,

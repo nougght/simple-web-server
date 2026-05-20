@@ -1,6 +1,7 @@
 package note
 
 import (
+	"simple-server/internal/config"
 	"simple-server/internal/model"
 	storage "simple-server/internal/storage/memory"
 	"testing"
@@ -10,7 +11,7 @@ import (
 
 func TestAddNote(t *testing.T) {
 	storage := storage.NewNoteStorage()
-	service := NewNoteService(&model.Config{}, storage)
+	service := NewNoteService(&config.Config{}, storage)
 
 	notes := []model.Note{
 		{Header: "header1", Body: "some body"},

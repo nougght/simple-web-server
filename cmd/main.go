@@ -8,13 +8,13 @@ import (
 	"syscall"
 	"time"
 
+	"simple-server/internal/config"
 	"simple-server/internal/handler"
-	"simple-server/internal/model"
 	"simple-server/internal/service"
 )
 
 func main() {
-	config, err := model.LoadConfig()
+	config, err := config.LoadConfig()
 	if err != nil {
 		log.Println("Ошибка при загрузке конфигурации")
 		panic(err)

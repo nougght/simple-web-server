@@ -1,6 +1,7 @@
 package service
 
 import (
+	"simple-server/internal/config"
 	"simple-server/internal/model"
 	"simple-server/internal/service/currency"
 	"simple-server/internal/service/note"
@@ -12,7 +13,7 @@ type Service struct {
 	currencyService *currency.CurrencyService
 }
 
-func GetServices(config *model.Config) *Service {
+func GetServices(config *config.Config) *Service {
 	return &Service{
 		noteService:     note.NewNoteService(config, storage.NewNoteStorage()),
 		currencyService: currency.NewCurrencyService(config),

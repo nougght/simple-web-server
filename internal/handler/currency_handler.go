@@ -36,7 +36,7 @@ func (h *CurrencyHandler) parseConvertParameters(r *http.Request) (*model.Conver
 		// если параметр не является числом - возвращаем ошибку
 		if val, err := strconv.ParseFloat(str, 64); err != nil {
 			log.Print(err.Error() + "\n\n")
-			return nil, fmt.Errorf("'amount' parsing failed: %e", err)
+			return nil, fmt.Errorf("'amount' parsing failed: %w", err)
 		} else {
 			params.Amount = val
 		}

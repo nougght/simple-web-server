@@ -1,4 +1,4 @@
-package model
+package config
 
 import (
 	"fmt"
@@ -8,7 +8,22 @@ import (
 	"github.com/joho/godotenv"
 )
 
+type PostgresConfig struct {
+	Host     string
+	Port     string
+	User     string
+	Password string
+	DBName   string
+	SSLMode  string
+}
+
+func (c *PostgresConfig) ConnectionString() string {
+	return fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
+		c.Host, c.Port, c.User, c.Password, c.DBName, c.SSLMode)
+}
+
 type Config struct {
+	Postgres           *PostgresConfig
 	FreecurrencyApiUrl string
 	FreecurrencyApiKey string
 }
