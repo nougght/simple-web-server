@@ -16,11 +16,11 @@ func (p *ConvertCurrencyParams) Validate() error {
 		return fmt.Errorf("negative amount")
 	}
 	if len(p.BaseCurrency) != 3 && len(p.BaseCurrency) != 0 {
-		return fmt.Errorf("invalid base currency")
+		return fmt.Errorf("invalid base currency: %w", ErrBadRequest)
 	}
 	for _, c := range p.TargetCurrencies {
 		if len(c) != 3 {
-			return fmt.Errorf("invalid target currency %s", c)
+			return fmt.Errorf("invalid target currency %s: %w", c, ErrBadRequest)
 		}
 	}
 	return nil

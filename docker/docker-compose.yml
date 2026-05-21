@@ -1,4 +1,3 @@
-
 services:
   postgres:
     image: postgres:18
@@ -12,9 +11,9 @@ services:
       - postgres-data:/var/lib/postgresql/data
     ports:
       - "5433:5432"
-    
+
   server:
-    build: 
+    build:
       # контекст сборки для доступа к .mod 
       context: ..
       dockerfile: /docker/Dockerfile
@@ -31,7 +30,6 @@ services:
       POSTGRES_HOST: "postgres"
       POSTGRES_PORT: "5432"
 
-
-
+    stop_grace_period: 10s
 volumes:
   postgres-data:

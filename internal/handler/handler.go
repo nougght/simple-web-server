@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"errors"
+	"log"
 	"net/http"
 	"simple-server/internal/model"
 )
@@ -40,4 +42,16 @@ func GetHandlers(services model.Service) (*http.ServeMux, *Handler) {
 	mux := http.NewServeMux()
 	handler.registerRoutes(mux)
 	return mux, &handler
+}
+
+func handleError(w http.ResponseWriter, err error) {
+	log.Println(err.Error())
+	switch {
+	case errors.Is(err, model.ErrNotFound):
+		http.Error(w, err.Error(), http.StatusNotFound)
+	case errors.Is(err, model.ErrBadRequest):
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	default:
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }

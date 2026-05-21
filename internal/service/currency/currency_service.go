@@ -3,6 +3,7 @@ package currency
 import (
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"simple-server/internal/config"
@@ -42,7 +43,7 @@ func (s *CurrencyService) requestCurrencyRates(baseCurrency string, targetCurren
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("Получены курсы валют: " + string(raw))
+	log.Println("Получены курсы валют: " + string(raw))
 
 	var respBody model.CurrencyRatesResponse
 	// декодируем json
@@ -58,7 +59,6 @@ func (s *CurrencyService) ConvertCurrency(params *model.ConvertCurrencyParams) (
 	// запрашиваем актуальный курс
 	rates, err := s.requestCurrencyRates(params.BaseCurrency, params.TargetCurrencies)
 	if err != nil {
-		fmt.Print(err.Error() + "\n\n")
 		return nil, fmt.Errorf("currency rates request error: %w", err)
 	}
 	// перемножаем курс на сумму для конвертации
