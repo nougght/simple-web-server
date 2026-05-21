@@ -24,6 +24,7 @@ func (c *PostgresConfig) ConnectionString() string {
 
 type Config struct {
 	Postgres           *PostgresConfig
+	StorageType        string
 	FreecurrencyApiUrl string
 	FreecurrencyApiKey string
 }
@@ -36,6 +37,43 @@ func LoadConfig() (*Config, error) {
 		log.Println(err.Error())
 	}
 
+	storageType, exists := os.LookupEnv("STORAGE_TYPE")
+	if !exists {
+		return nil, fmt.Errorf("не найден тип хранилища")
+	}
+
+	pgConfig := &PostgresConfig{}
+	if storageType == "postgres" {
+		if storageType != "postgres" && storageType != "memory" {
+			return nil, fmt.Errorf("неизвестный тип хранилища: %s", storageType)
+		}
+
+		pgConfig.Host, exists = os.LookupEnv("POSTGRES_HOST")
+		if !exists {
+			return nil, fmt.Errorf("не найден хост postgres")
+		}
+		pgConfig.Port, exists = os.LookupEnv("POSTGRES_PORT")
+		if !exists {
+			return nil, fmt.Errorf("не найден порт postgres")
+		}
+		pgConfig.User, exists = os.LookupEnv("POSTGRES_USER")
+		if !exists {
+			return nil, fmt.Errorf("не найден пользователь postgres")
+		}
+		pgConfig.Password, exists = os.LookupEnv("POSTGRES_PASSWORD")
+		if !exists {
+			return nil, fmt.Errorf("не найден пароль postgres")
+		}
+		pgConfig.DBName, exists = os.LookupEnv("POSTGRES_DB")
+		if !exists {
+			return nil, fmt.Errorf("не найдено имя базы данных postgres")
+		}
+		pgConfig.SSLMode, exists = os.LookupEnv("POSTGRES_SSLMODE")
+		if !exists {
+			return nil, fmt.Errorf("не найден SSLMode postgres")
+		}
+	}
+
 	apiUrl, exists := os.LookupEnv("FREECURRENCY_API_URL")
 	if !exists {
 		return nil, fmt.Errorf("не найден api url")
@@ -45,5 +83,5 @@ func LoadConfig() (*Config, error) {
 		return nil, fmt.Errorf("не найден api ключ")
 	}
 
-	return &Config{FreecurrencyApiUrl: apiUrl, FreecurrencyApiKey: apiKey}, nil
+	return &Config{Postgres: pgConfig, FreecurrencyApiUrl: apiUrl, FreecurrencyApiKey: apiKey}, nil
 }

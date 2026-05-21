@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -9,6 +10,8 @@ import (
 
 	"simple-server/internal/model"
 	"simple-server/internal/util"
+
+	"github.com/google/uuid"
 )
 
 type NoteHandler struct {
@@ -23,14 +26,45 @@ func NewNoteHandler(service model.NoteService) *NoteHandler {
 
 func (h *NoteHandler) parseNoteFromRequest(r *http.Request) (*model.Note, error) {
 	raw, err := io.ReadAll(r.Body)
+	_ = r.Body.Close()
 	if err != nil {
-		return nil, fmt.Errorf("body reading error")
+		return nil, fmt.Errorf("body reading error: %w", err)
 	}
 	var note model.Note
 	if err = util.DecodeJson(raw, &note); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %w", err, model.ErrBadRequest)
 	}
 	return &note, nil
+}
+
+func (h *NoteHandler) parsePutNoteRequest(r *http.Request) (*model.Note, error) {
+	id, err := uuid.Parse(r.PathValue("id"))
+	if err != nil {
+		return nil, fmt.Errorf("invalid note id: %w: %w", err, model.ErrBadRequest)
+	}
+	note, err := h.parseNoteFromRequest(r)
+	if err != nil {
+		return nil, err
+	}
+
+	// если id из URL и тела не совпадают
+	if id != note.NoteId {
+		return nil, fmt.Errorf("id in URL '%s' doesn't match id in body'%s': %w", id, note.NoteId, model.ErrBadRequest)
+	}
+
+	return note, nil
+}
+
+func (h *NoteHandler) handleError(w http.ResponseWriter, err error) {
+	log.Println(err.Error())
+	switch {
+	case errors.Is(err, model.ErrNotFound):
+		http.Error(w, err.Error(), http.StatusNotFound)
+	case errors.Is(err, model.ErrBadRequest):
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	default:
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
 
 // Добавление заметки
@@ -39,34 +73,76 @@ func (h *NoteHandler) PostNote(w http.ResponseWriter, r *http.Request) {
 
 	note, err := h.parseNoteFromRequest(r)
 	if err != nil {
-		log.Println(err.Error())
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		h.handleError(w, err)
 		return
 	}
 
-	if err = h.service.AddNote(note); err != nil {
-		log.Println(err.Error())
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	note, err = h.service.AddNote(r.Context(), note)
+	if err != nil {
+		h.handleError(w, err)
 		return
 	}
 
-	log.Print("Заметка создана\n\n")
+	jsonResponse, err := json.Marshal(note)
+	if err != nil {
+		h.handleError(w, fmt.Errorf("json encoding error: %w", err))
+		return
+	}
 	w.WriteHeader(http.StatusOK)
+	if _, err := w.Write(jsonResponse); err == nil {
+		log.Print("Ответ успешно отправлен\n\n")
+	} else {
+		log.Println(err.Error())
+	}
 }
 
 // получение списка заметок
 func (h *NoteHandler) GetAllNotes(w http.ResponseWriter, r *http.Request) {
 	log.Printf("%s %s", r.Method, r.URL)
 
-	notesList := h.service.GetAllNotes()
-
-	jsonResponse, err := json.Marshal(notesList)
+	notesList, err := h.service.GetAllNotes(r.Context())
 	if err != nil {
-		http.Error(w, "json encoding error", http.StatusInternalServerError)
-		log.Println(err.Error())
+		h.handleError(w, err)
 		return
 	}
 
+	jsonResponse, err := json.Marshal(notesList)
+	if err != nil {
+		h.handleError(w, fmt.Errorf("json encoding error: %w", err))
+		return
+	}
+
+	if _, err := w.Write(jsonResponse); err == nil {
+		log.Print("Ответ успешно отправлен\n\n")
+	} else {
+		log.Print(err.Error() + "\n\n")
+	}
+}
+
+// получение заметки по его ID
+func (h *NoteHandler) GetNoteById(w http.ResponseWriter, r *http.Request) {
+	log.Printf("%s %s", r.Method, r.URL)
+
+	id, err := uuid.Parse(r.PathValue("id"))
+	if err != nil {
+		h.handleError(w, fmt.Errorf("invalid note id: %w: %w", err, model.ErrBadRequest))
+		return
+	}
+
+	note, err := h.service.GetNoteById(r.Context(), id)
+	if err != nil {
+		h.handleError(w, err)
+		return
+	}
+
+	// конвертируем структуру в json и отправляем ответ
+	jsonResponse, err := json.Marshal(note)
+	if err != nil {
+		h.handleError(w, fmt.Errorf("json encoding error: %w", err))
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 	if _, err := w.Write(jsonResponse); err == nil {
 		log.Print("Ответ успешно отправлен\n\n")
 	} else {
@@ -75,23 +151,21 @@ func (h *NoteHandler) GetAllNotes(w http.ResponseWriter, r *http.Request) {
 }
 
 // получение заметки по его заголовку
-func (h *NoteHandler) GetNoteByHeader(w http.ResponseWriter, r *http.Request) {
+func (h *NoteHandler) GetNotesByHeader(w http.ResponseWriter, r *http.Request) {
 	log.Printf("%s %s", r.Method, r.URL)
 
 	header := r.PathValue("header")
 
-	note, err := h.service.GetNoteByHeader(header)
+	notes, err := h.service.GetNotesByHeader(r.Context(), header)
 	if err != nil {
-		log.Println(err.Error())
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		h.handleError(w, err)
 		return
 	}
 
 	// конвертируем структуру в json и отправляем ответ
-	jsonResponse, err := json.Marshal(note)
+	jsonResponse, err := json.Marshal(notes)
 	if err != nil {
-		log.Print(err.Error() + "\n\n")
-		http.Error(w, "json encoding error", http.StatusInternalServerError)
+		h.handleError(w, fmt.Errorf("json encoding error: %w", err))
 		return
 	}
 
@@ -101,22 +175,6 @@ func (h *NoteHandler) GetNoteByHeader(w http.ResponseWriter, r *http.Request) {
 	} else {
 		log.Print(err.Error() + "\n\n")
 	}
-
-}
-
-func (h *NoteHandler) parsePutNoteRequest(r *http.Request) (*model.Note, error) {
-	header := r.PathValue("header")
-	note, err := h.parseNoteFromRequest(r)
-	if err != nil {
-		return nil, err
-	}
-
-	// если заголовок из URL и тела не совпадает
-	if header != note.Header {
-		return nil, fmt.Errorf("header in URL '%s' doesn't match header in body '%s'", header, note.Header)
-	}
-
-	return note, nil
 }
 
 // Изменение заметки по его заголовку
@@ -125,14 +183,12 @@ func (h *NoteHandler) PutNote(w http.ResponseWriter, r *http.Request) {
 
 	note, err := h.parsePutNoteRequest(r)
 	if err != nil {
-		log.Println(err.Error())
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		h.handleError(w, err)
 		return
 	}
 	// если все ок - обновляем заметку
-	if err := h.service.UpdateNote(note); err != nil {
-		log.Println(err.Error())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	if err := h.service.UpdateNote(r.Context(), note); err != nil {
+		h.handleError(w, err)
 		return
 	}
 
@@ -143,11 +199,14 @@ func (h *NoteHandler) PutNote(w http.ResponseWriter, r *http.Request) {
 // удаление заметки
 func (h *NoteHandler) DeleteNote(w http.ResponseWriter, r *http.Request) {
 	log.Printf("%s %s", r.Method, r.URL)
-	header := r.PathValue("header")
+	noteId, err := uuid.Parse(r.PathValue("id"))
+	if err != nil {
+		h.handleError(w, fmt.Errorf("invalid note id: %w: %w", err, model.ErrBadRequest))
+		return
+	}
 
-	if err := h.service.DeleteNote(header); err != nil {
-		log.Println(err.Error())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	if err := h.service.DeleteNote(r.Context(), noteId); err != nil {
+		h.handleError(w, err)
 		return
 	}
 

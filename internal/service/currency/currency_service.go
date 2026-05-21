@@ -1,7 +1,6 @@
 package currency
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -47,7 +46,7 @@ func (s *CurrencyService) requestCurrencyRates(baseCurrency string, targetCurren
 
 	var respBody model.CurrencyRatesResponse
 	// декодируем json
-	if err := json.Unmarshal(raw, &respBody); err != nil {
+	if err := util.DecodeJson(raw, &respBody); err != nil {
 		return nil, err
 	}
 

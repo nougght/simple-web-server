@@ -16,11 +16,13 @@ import (
 func main() {
 	config, err := config.LoadConfig()
 	if err != nil {
-		log.Println("Ошибка при загрузке конфигурации")
-		panic(err)
+		log.Panic("Ошибка при загрузке конфигурации")
 	}
 
-	services := service.GetServices(config)
+	services, err := service.GetServices(config)
+	if err != nil {
+		log.Panicf("Ошибка при инициализации сервисов: %s", err.Error())
+	}
 	mux, _ := handler.GetHandlers(services)
 
 	// перехват сигналов завершения работы

@@ -1,3 +1,4 @@
+// nolint
 package api_client
 
 import (
@@ -8,12 +9,11 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
-)
 
-type Note struct {
-	Header string `json:"header"`
-	Body   string `json:"body"`
-}
+	"simple-server/internal/model"
+
+	"github.com/google/uuid"
+)
 
 type ApiClient struct {
 	baseUrl string
@@ -27,9 +27,9 @@ func NewApiClient(baseUrl string) *ApiClient {
 }
 
 // запрос списка заметок
-func (c *ApiClient) FetchAllNotes() ([]Note, error) {
-	fmt.Println("GET /notes")
-	resp, err := http.Get(fmt.Sprintf("%s/notes", c.baseUrl))
+func (c *ApiClient) FetchAllNotes() ([]model.Note, error) {
+	fmt.Println("GET /note")
+	resp, err := http.Get(fmt.Sprintf("%s/note", c.baseUrl))
 	if err != nil {
 		return nil, err
 	}
@@ -43,7 +43,7 @@ func (c *ApiClient) FetchAllNotes() ([]Note, error) {
 		return nil, fmt.Errorf("body: %s", string(raw))
 	}
 
-	var notesList []Note
+	var notesList []model.Note
 	if err := json.Unmarshal(raw, &notesList); err != nil {
 		return nil, err
 	}
@@ -51,10 +51,10 @@ func (c *ApiClient) FetchAllNotes() ([]Note, error) {
 }
 
 // запрос заметки
-func (c *ApiClient) FetchNote(header string) (*Note, error) {
-	fmt.Println("GET /notes/" + header)
+func (c *ApiClient) FetchNoteById(id uuid.UUID) (*model.Note, error) {
+	fmt.Println("GET /note/id/" + id.String())
 
-	resp, err := http.Get(fmt.Sprintf("%s/notes/%s", c.baseUrl, header))
+	resp, err := http.Get(fmt.Sprintf("%s/note/id/%s", c.baseUrl, id.String()))
 	if err != nil {
 		return nil, err
 	}
@@ -68,40 +68,69 @@ func (c *ApiClient) FetchNote(header string) (*Note, error) {
 		return nil, fmt.Errorf("body: %s", string(raw))
 	}
 
-	var note Note
+	var note model.Note
 	if err := json.Unmarshal(raw, &note); err != nil {
 		return nil, err
 	}
 	return &note, nil
 }
 
-// запрос добавления новой заметки
-func (c *ApiClient) AddNote(note *Note) error {
-	jsonBody, _ := json.Marshal(note)
+func (c *ApiClient) FetchNoteByHeader(header string) ([]model.Note, error) {
+	fmt.Println("GET /note/header/" + header)
 
-	fmt.Printf("POST /notes \n%s", jsonBody)
-	resp, err := http.Post(fmt.Sprintf("%s/notes", c.baseUrl), "application/json", bytes.NewBuffer(jsonBody))
+	resp, err := http.Get(fmt.Sprintf("%s/note/header/%s", c.baseUrl, header))
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer resp.Body.Close()
 	raw, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	fmt.Println(resp.Status)
 	if resp.StatusCode != 200 {
-		return fmt.Errorf("body: %s", string(raw))
+		return nil, fmt.Errorf("body: %s", string(raw))
 	}
 
-	return nil
+	var notes []model.Note
+	if err := json.Unmarshal(raw, &notes); err != nil {
+		return nil, err
+	}
+	return notes, nil
+}
+
+// запрос добавления новой заметки
+func (c *ApiClient) AddNote(note *model.Note) (*model.Note, error) {
+	jsonBody, _ := json.Marshal(note)
+
+	fmt.Printf("POST /note \n%s", jsonBody)
+	resp, err := http.Post(fmt.Sprintf("%s/note", c.baseUrl), "application/json", bytes.NewBuffer(jsonBody))
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	raw, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println(resp.Status)
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("body: %s", string(raw))
+	}
+
+	var addedNote model.Note
+	if err := json.Unmarshal(raw, &addedNote); err != nil {
+		return nil, fmt.Errorf("json unmarshaling error: %w", err)
+	}
+
+	return &addedNote, nil
 }
 
 // запрос изменения заметки
-func (c *ApiClient) UpdateNote(note *Note) error {
+func (c *ApiClient) UpdateNote(note *model.Note) error {
 	jsonBody, _ := json.Marshal(*note)
 
-	path := fmt.Sprintf("/notes/%s", url.PathEscape(note.Header))
+	path := fmt.Sprintf("/note/%s", url.PathEscape(note.NoteId.String()))
 	fmt.Printf("PUT %s \n%s\n", path, jsonBody)
 	req, _ := http.NewRequest(http.MethodPut, c.baseUrl+path, bytes.NewBuffer(jsonBody))
 	req.Header.Set("Content-Type", "application/json")
@@ -123,9 +152,9 @@ func (c *ApiClient) UpdateNote(note *Note) error {
 }
 
 // запрос удаления заметки
-func (c *ApiClient) DeleteNote(header string) error {
-	fmt.Printf("DELETE /notes/%s", header)
-	req, _ := http.NewRequest(http.MethodDelete, fmt.Sprintf("%s/notes", c.baseUrl), nil)
+func (c *ApiClient) DeleteNote(id uuid.UUID) error {
+	fmt.Printf("DELETE /note/%s", id.String())
+	req, _ := http.NewRequest(http.MethodDelete, fmt.Sprintf("%s/note/%s", c.baseUrl, id.String()), nil)
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {

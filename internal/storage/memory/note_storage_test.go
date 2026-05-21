@@ -1,9 +1,13 @@
 package memory
 
 import (
+	"context"
+	"log"
 	"simple-server/internal/model"
+	"slices"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -14,41 +18,42 @@ func TestAdd(t *testing.T) {
 
 	notes := []model.Note{
 		{Header: "header123", Body: "some body"},
-		{Header: "header123", Body: ""},
-		{Header: "other", Body: "dfdfs"},
+		{Header: "other", Body: ""},
 	}
 
 	addTests := []struct {
 		name          string
-		note          model.Note
-		errorExpected bool // ожидается ли ошибка
+		note          *model.Note
+		errorExpected bool
 	}{
-		{"default add", notes[0], false},
-		{"duplicate error add", notes[1], true}, // ошибка из-за дублирования заголовка
-		{"default add 2", notes[2], false},
+		{"default add", &notes[0], false},
+		{"empty body", &notes[1], false},
 	}
 
 	for _, test := range addTests {
 
 		t.Run(test.name, func(t *testing.T) {
-			err := storage.AddNote(test.note)
+			result, err := storage.AddNote(context.Background(), test.note)
 			// проверка ошибки при добавлении
 			if test.errorExpected {
-				require.Error(t, err)
+				assert.Error(t, err)
+				assert.Nil(t, result)
 			} else {
-				require.Nil(t, err)
+				assert.Nil(t, err)
+				require.NotNil(t, result)
+				assert.Equal(t, test.note.Header, result.Header)
+				assert.Equal(t, test.note.Body, result.Body)
 			}
 
-			result, ok := storage.notes[test.note.Header]
-			// проверка наличия добавленной заметки
-			assert.True(t, ok)
-			require.NotNil(t, result)
-
+			note, ok := storage.notes[test.note.NoteId]
 			if test.errorExpected {
-				// дубликат не должен был сохраниться
-				assert.NotEqual(t, test.note, result)
+				assert.False(t, ok)
+				assert.Nil(t, note)
 			} else {
-				assert.Equal(t, test.note, result)
+				assert.True(t, ok)
+				require.NotNil(t, note)
+				assert.Equal(t, test.note.Header, note.Header)
+				assert.Equal(t, test.note.Body, note.Body)
 			}
 		})
 	}
@@ -59,37 +64,41 @@ func TestAdd(t *testing.T) {
 }
 
 // проверка получения заметки
-func TestGet(t *testing.T) {
+func TestGetByHeader(t *testing.T) {
 	notes := []model.Note{
-		model.Note{Header: "header1", Body: "some body"},
-		model.Note{Header: "header2", Body: "sdsfsdfds"},
+		{NoteId: uuid.New(), Header: "header1", Body: "some body"},
+		{NoteId: uuid.New(), Header: "header2", Body: "sdsfsdfds"},
 	}
 	// создаем хранилище с заполненными данными
 	storage := NewNoteStorageWithData(notes)
+	log.Println(storage.notes)
 
+	randomHeader := "header" + uuid.New().String()
 	tests := []struct {
-		name          string
-		header        string
-		expected      *model.Note
-		errorExpected bool // ожидается ли ошибка
+		name     string
+		header   string
+		expected *model.Note
 	}{
-		{"default get", notes[0].Header, &notes[0], false},
-		{"default get 2", notes[1].Header, &notes[1], false},
-		{"not found error get", "header3", nil, true}, // ошибка,т.к. такой заметки нет
+		{"default get", notes[0].Header, &notes[0]},
+		{"default get 2", notes[1].Header, &notes[1]},
+		{"not found", randomHeader, nil},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			result, err := storage.GetNoteByHeader(test.header)
-
-			if test.errorExpected {
-				assert.Error(t, err)
-				assert.Nil(t, result)
+			result, err := storage.GetNotesByHeader(context.Background(), test.header)
+			if test.expected == nil {
+				assert.Nil(t, err)
+				assert.NotNil(t, result)
+				contains := slices.ContainsFunc(result, func(e model.Note) bool { return e.Header == test.header })
+				assert.False(t, contains)
 			} else {
 				assert.Nil(t, err)
 				require.NotNil(t, result)
+				require.GreaterOrEqual(t, len(result), 1)
 
-				assert.Equal(t, *test.expected, *result)
+				contains := slices.ContainsFunc(result, func(e model.Note) bool { return e.Header == test.header && e.Body == test.expected.Body })
+				assert.True(t, contains)
 			}
 
 		})
@@ -99,18 +108,20 @@ func TestGet(t *testing.T) {
 
 func TestUpdate(t *testing.T) {
 	notes := []model.Note{
-		model.Note{Header: "header1", Body: "some body"},
+		{NoteId: uuid.New(), Header: "header1", Body: "some body"},
 	}
 	storage := NewNoteStorageWithData(notes)
+	log.Println(storage.notes)
 
-	newNote := model.Note{Header: "header1", Body: "new body"}
+	newNote := model.Note{NoteId: notes[0].NoteId, Header: "header1", Body: "new body"}
 
 	// обновляем заметку (с тем же заголовком)
-	err := storage.UpdateNote(newNote)
+	err := storage.UpdateNote(context.Background(), &newNote)
+	log.Println(storage.notes)
 	assert.Nil(t, err)
 
 	// заметка должна замениться
-	result, ok := storage.notes[newNote.Header]
+	result, ok := storage.notes[newNote.NoteId]
 	assert.True(t, ok)
 	require.NotNil(t, result)
 	assert.Equal(t, newNote, result)
@@ -118,17 +129,17 @@ func TestUpdate(t *testing.T) {
 
 func TestDelete(t *testing.T) {
 	notes := []model.Note{
-		model.Note{Header: "header1", Body: "some body"},
-		model.Note{Header: "header2", Body: "sfjdsiofj"},
+		{NoteId: uuid.New(), Header: "header1", Body: "some body"},
+		{NoteId: uuid.New(), Header: "header2", Body: "sfjdsiofj"},
 	}
 	storage := NewNoteStorageWithData(notes)
 
 	// обновляем заметку (с тем же заголовком)
-	err := storage.DeleteNoteByHeader(notes[0].Header)
+	err := storage.DeleteNote(context.Background(), notes[0].NoteId)
 	assert.Nil(t, err)
 
 	// заметка должна остсутствовать
-	_, ok := storage.notes[notes[0].Header]
+	_, ok := storage.notes[notes[0].NoteId]
 	assert.False(t, ok)
 
 	if len(storage.notes) != 1 {

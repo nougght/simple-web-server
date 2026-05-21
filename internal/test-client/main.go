@@ -1,15 +1,17 @@
+// nolint
 package main
 
 import (
 	"fmt"
 	"log"
+	"simple-server/internal/model"
+	"simple-server/internal/test-client/api_client"
 	"slices"
-	. "test-client/api_client"
 )
 
 // проверка работы сервера
 func main() {
-	api := NewApiClient("http://127.0.0.1:8085")
+	api := api_client.NewApiClient("http://127.0.0.1:8085")
 
 	log.Println("Запрос списка заметок")
 	notes, err := api.FetchAllNotes()
@@ -19,72 +21,60 @@ func main() {
 		fmt.Println(notes)
 	}
 
-	log.Println("Добавление новых заметок")
-	newNotes := []Note{Note{Header: "my note 1", Body: "dfjsiefsdjflsehdjf"},
-		Note{Header: "my note 2", Body: "4536 dfdfj 343704"},
-		Note{Header: "my note 3", Body: ""}}
-	notes = append(notes, newNotes...)
-
-	if err := api.AddNote(&notes[0]); err != nil {
-		fmt.Printf("Ошибка: %s\n", err.Error())
-	}
-	if err := api.AddNote(&notes[1]); err != nil {
-		fmt.Printf("Ошибка: %s\n", err.Error())
-	}
-	if err := api.AddNote(&notes[2]); err != nil {
-		fmt.Printf("Ошибка: %s\n", err.Error())
-	}
-	// проверка добавленных элементов
-	if resultNotes, err := api.FetchAllNotes(); err != nil {
+	log.Println("Добавление новой заметки")
+	newNote := model.Note{Header: "my note 1", Body: "dfjsiefsdjflsehdjf"}
+	addedNote, err := api.AddNote(&newNote)
+	if err != nil {
 		fmt.Printf("Ошибка: %s\n", err.Error())
 	} else {
-		fmt.Println(resultNotes)
+		fmt.Printf("Добавлена заметка: %v\n", addedNote)
+	}
 
-		i := 0
-		for ; i < len(notes) && slices.ContainsFunc(resultNotes,
-			func(e Note) bool { return e.Header == notes[i].Header }); i++ {
+	if addedNote != nil {
+		log.Println("Запрос заметки по Id")
+		if note, err := api.FetchNoteById(addedNote.NoteId); err != nil {
+			fmt.Printf("Ошибка: %s\n", err.Error())
+		} else {
+			fmt.Println(note)
 		}
 
-		if i < len(notes) {
-			fmt.Print("Ответ не совпадает с ожидаемым\n\n")
+		log.Println("Запрос заметок по заголовку")
+		if found, err := api.FetchNoteByHeader(addedNote.Header); err != nil {
+			fmt.Printf("Ошибка: %s\n", err.Error())
 		} else {
-			fmt.Print("Ожидаемый результат\n\n")
+			fmt.Println(found)
+			if !slices.ContainsFunc(found, func(e model.Note) bool { return e.NoteId == addedNote.NoteId }) {
+				fmt.Print("Ответ не совпадает с ожидаемым\n\n")
+			} else {
+				fmt.Print("Ожидаемый результат\n\n")
+			}
 		}
-	}
 
-	log.Println("Запрос одной из заметок")
-	if note, err := api.FetchNote("my note 2"); err != nil {
-		fmt.Printf("Ошибка: %s\n", err.Error())
-	} else {
-		fmt.Println(note)
-		// проверка соответствия
-		if *note != newNotes[2] {
-			fmt.Print("Ответ не совпадает с ожидаемым\n\n")
+		log.Println("Изменение заметки")
+		updatedNote := model.Note{NoteId: addedNote.NoteId, Header: addedNote.Header, Body: "new body"}
+		if err := api.UpdateNote(&updatedNote); err != nil {
+			fmt.Printf("Ошибка: %s\n", err.Error())
 		} else {
-			fmt.Print("Ожидаемый результат\n\n")
+			if note, err := api.FetchNoteById(updatedNote.NoteId); err != nil {
+				fmt.Printf("Ошибка: %s\n", err.Error())
+			} else {
+				if *note != updatedNote {
+					fmt.Print("Ответ не совпадает с ожидаемым\n\n")
+				} else {
+					fmt.Print("Ожидаемый результат\n\n")
+				}
+			}
 		}
-	}
 
-	log.Println("Добавление заметки с уже существующим заголовком (ожидается ошибка)")
-	if err := api.AddNote(&Note{Header: "my note 1", Body: "1234"}); err != nil {
-		fmt.Printf("Ошибка: %s\n\n", err.Error())
-	} else {
-		fmt.Print("Ответ не совпадает с ожидаемым\n\n")
-	}
-
-	log.Println("Изменение существующей заметки")
-	newNote := Note{Header: "my note 1", Body: "new body"}
-	if err := api.UpdateNote(&newNote); err != nil {
-		fmt.Printf("Ошибка: %s\n", err.Error())
-	}
-	// проверка изменения
-	if note, err := api.FetchNote("my note 1"); err != nil {
-		fmt.Printf("Ошибка: %s\n", err.Error())
-	} else {
-		if *note != newNote {
-			fmt.Print("Ответ не совпадает с ожидаемым\n\n")
+		log.Println("Удаление заметки")
+		if err := api.DeleteNote(updatedNote.NoteId); err != nil {
+			fmt.Printf("Ошибка: %s\n", err.Error())
 		} else {
-			fmt.Print("Ожидаемый результат\n\n")
+			if note, err := api.FetchNoteById(updatedNote.NoteId); err != nil {
+				fmt.Printf("Ошибка (ожидаемо после удаления): %s\n", err.Error())
+			} else {
+				fmt.Printf("Заметка не удалена: %v\n\n", note)
+			}
 		}
 	}
 
@@ -94,5 +84,4 @@ func main() {
 	} else {
 		fmt.Println(res)
 	}
-
 }

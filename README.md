@@ -5,46 +5,68 @@
 ``` json
  // note
  { 
-    "header": // уникальный заголовок
+    "note_id": // уникальный id заметки (uuid)
+    "header": // заголовок (not null)
     "body": // тело заметки
  }
 ```
 
 А также запрос для конвертации валют, для получения актуального курса используется внешний api <https://freecurrencyapi.com/>
 
-### Временный api ключ (указать в .env)
+### Переменные окружения
 
 ```
+# тип хранилища, может быть "memory" или "postgres"
+STORAGE_TYPE=
+
+# переменные для postgres должны совпадать с docker-compose
+# при запуске сервера в контейнере, хост и порт заменяются в docker compose
+POSTGRES_HOST=
+POSTGRES_PORT=
+
+POSTGRES_USER=
+POSTGRES_PASSWORD=
+POSTGRES_DB=
+POSTGRES_SSLMODE=
+
+# переменные для получения курсов валют
+FREECURRENCY_API_URL=https://api.freecurrencyapi.com/v1/latest
 FREECURRENCY_API_KEY=fca_live_8lWYrQ3cQDWZob9q0evmwYSrRYH6mtdPU5XTMfJc
 ```
 
 ---
 
-### Запуск с линтером и тестами:
+### Запуск с линтером и тестами
+
 #### В контейнере
+
 ``` bash
     make all
 ```
 
-#### Без контейнера на windows
+#### Без контейнера на windows (запускает postgres в отдельном контейнере)
+
 ``` bash
     make all-windows
 ```
+
 ---
 
 ## Эндпоинты
 
 ### Операции с заметками
 
-- `GET /notes/{header}` - получение заметки по его заголовку, ответ - объект Note
+- `GET /note` - все заметки, ответ - список Note
 
-- `GET /notes` - все заметки, ответ - список Note
+- `GET /note/header/{header}` - заметки с указанным заголовком, ответ - список Note
 
-- `POST /notes` - создание заметки, Note передается в теле
+- `GET /note/id/{id}` - заметка по её id, ответ - объект Note
 
-- `PUT /notes/{header}` - изменение заметки, Note передается в теле
+- `POST /note` - создание заметки, Note передается в теле, ответ - созданная заметка с id
 
-- `DELETE /notes/{header}` - удаление заметки
+- `PUT /note/{id}` - изменение заметки по id, Note передается в теле
+
+- `DELETE /note/{id}` - удаление заметки по id
 
 ### Конвертация валют
 
