@@ -1,11 +1,12 @@
 package currency
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
+	"simple-server/internal/config"
 	"simple-server/internal/model"
 	"simple-server/internal/util"
 )
@@ -15,7 +16,7 @@ type CurrencyService struct {
 	apiKey               string
 }
 
-func NewCurrencyService(config *model.Config) *CurrencyService {
+func NewCurrencyService(config *config.Config) *CurrencyService {
 	return &CurrencyService{
 		currencyRatesBaseUrl: config.FreecurrencyApiUrl,
 		apiKey:               config.FreecurrencyApiKey,
@@ -42,11 +43,11 @@ func (s *CurrencyService) requestCurrencyRates(baseCurrency string, targetCurren
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("Получены курсы валют: " + string(raw))
+	log.Println("Получены курсы валют: " + string(raw))
 
 	var respBody model.CurrencyRatesResponse
 	// декодируем json
-	if err := json.Unmarshal(raw, &respBody); err != nil {
+	if err := util.DecodeJson(raw, &respBody); err != nil {
 		return nil, err
 	}
 
@@ -58,8 +59,7 @@ func (s *CurrencyService) ConvertCurrency(params *model.ConvertCurrencyParams) (
 	// запрашиваем актуальный курс
 	rates, err := s.requestCurrencyRates(params.BaseCurrency, params.TargetCurrencies)
 	if err != nil {
-		fmt.Print(err.Error() + "\n\n")
-		return nil, fmt.Errorf("currency rates request error: %e", err)
+		return nil, fmt.Errorf("currency rates request error: %w", err)
 	}
 	// перемножаем курс на сумму для конвертации
 	for currency := range rates {

@@ -1,16 +1,22 @@
 package note
 
 import (
+	"context"
+	"simple-server/internal/config"
 	"simple-server/internal/model"
-	"simple-server/internal/storage"
+	"simple-server/internal/storage/memory"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
+var cfg = &config.Config{
+	StorageType: "memory",
+}
+
 func TestAddNote(t *testing.T) {
-	storage := storage.NewNoteStorage()
-	service := NewNoteService(&model.Config{}, storage)
+	storage := memory.NewNoteStorage()
+	service := NewNoteService(cfg, storage)
 
 	notes := []model.Note{
 		{Header: "header1", Body: "some body"},
@@ -27,11 +33,13 @@ func TestAddNote(t *testing.T) {
 
 	for _, test := range test {
 		t.Run(test.name, func(t *testing.T) {
-			err := service.AddNote(&test.note)
+			note, err := service.AddNote(context.Background(), &test.note)
 			if test.errorExpected {
 				assert.Error(t, err)
 			} else {
 				assert.Nil(t, err)
+				assert.Equal(t, test.note.Header, note.Header)
+				assert.Equal(t, test.note.Body, note.Body)
 			}
 		})
 	}

@@ -1,7 +1,19 @@
-
 services:
+  postgres:
+    image: postgres:18
+    environment:
+      POSTGRES_DB: "mydb"
+      POSTGRES_PASSWORD: "pgpass54"
+      PGDATA: "/var/lib/postgresql/data/pgdata"
+    volumes:
+      # инициализация бд
+      - ../internal/storage/postgres/sql/:/docker-entrypoint-initdb.d
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+
   server:
-    build: 
+    build:
       # контекст сборки для доступа к .mod 
       context: ..
       dockerfile: /docker/Dockerfile
@@ -13,4 +25,11 @@ services:
     # переменные окружения
     env_file:
       - ../.env
-    # environment:
+    environment:
+      # подключение по имени сервиса
+      POSTGRES_HOST: "postgres"
+      POSTGRES_PORT: "5432"
+
+    stop_grace_period: 10s
+volumes:
+  postgres-data:

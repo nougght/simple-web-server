@@ -1,17 +1,24 @@
 
 .PHONY: all lint build run test
 
+include .env
+
 # проверка, тестирование, сборка и запуск в контейнере
 all: lint test docker-build docker-up
 
-all-windows: lint test build-windows run-windows
+all-windows: lint test build-windows run-windows 
 
 # сборка под windows
-build-windows:
-	go build -o bin/server.exe .\cmd
+build-windows: 
+	go build -o bin/server.exe ./cmd
 
 run-windows: 
-	.\bin\server.exe
+ifeq (${STORAGE_TYPE},postgres)
+	docker-compose -p simple-server -f docker/docker-compose.yml up -d --build postgres
+else
+	echo memory storage
+endif
+	./bin/server.exe
 
 # запуск линтеров
 lint:
@@ -22,10 +29,17 @@ lint:
 test:
 	go test -v --cover ./...
 
+
+
 # сборка образа
 docker-build:
 	docker build --no-cache -t simple-server -f docker/Dockerfile .
 
 # запуск контейнера
 docker-up:
-	docker-compose -p simple-server -f docker/docker-compose.yml up -d 
+ifeq (${STORAGE_TYPE},postgres)
+	docker-compose -p simple-server -f docker/docker-compose.yml up -d --build postgres
+else
+	echo memory storage
+endif
+	docker-compose -p simple-server -f docker/docker-compose.yml up -d --build server

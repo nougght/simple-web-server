@@ -35,8 +35,7 @@ func (h *CurrencyHandler) parseConvertParameters(r *http.Request) (*model.Conver
 	if str != "" {
 		// если параметр не является числом - возвращаем ошибку
 		if val, err := strconv.ParseFloat(str, 64); err != nil {
-			log.Print(err.Error() + "\n\n")
-			return nil, fmt.Errorf("'amount' parsing failed: %e", err)
+			return nil, fmt.Errorf("'amount' parsing failed: %w: %w", err, model.ErrBadRequest)
 		} else {
 			params.Amount = val
 		}
@@ -54,28 +53,26 @@ func (h *CurrencyHandler) ConvertCurrency(w http.ResponseWriter, r *http.Request
 	// извлекаем параметры из запроса
 	params, err := h.parseConvertParameters(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		handleError(w, err)
 		return
 	}
 	// проверяем параметры
 	if err := params.Validate(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		handleError(w, err)
 		return
 	}
 
 	var result model.ConvertCurrencyResponse
 	result, err = h.service.ConvertCurrency(params)
 	if err != nil {
-		// возвращаем ответ с ошибкой
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		handleError(w, err)
 		return
 	}
 
 	// кодируем результат в json
 	jsonResponse, err := json.Marshal(result)
 	if err != nil {
-		log.Print(err.Error() + "\n\n")
-		http.Error(w, "json encoding error", http.StatusInternalServerError)
+		handleError(w, fmt.Errorf("json encoding error: %w", err))
 		return
 	}
 	// отправляем ответ с успешным статусом

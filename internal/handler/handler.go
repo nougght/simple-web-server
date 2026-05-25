@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"errors"
+	"log"
 	"net/http"
 	"simple-server/internal/model"
 )
@@ -14,16 +16,21 @@ func (h *Handler) registerRoutes(mux *http.ServeMux) {
 	// конвертация валют с использованием внешнего api
 	mux.HandleFunc("GET /currency", h.CurrencyHandler.ConvertCurrency)
 
-	// получение заметки по уникальному заголовку
-	mux.HandleFunc("GET /notes/{header}", h.NoteHandler.GetNoteByHeader)
 	// // получение всех заметок
-	mux.HandleFunc("GET /notes", h.NoteHandler.GetAllNotes)
+	mux.HandleFunc("GET /note", h.NoteHandler.GetAllNotes)
+
+	// получение заметок с указанным заголовком
+	mux.HandleFunc("GET /note/header/{header}", h.NoteHandler.GetNotesByHeader)
+
+	// получение заметки по id
+	mux.HandleFunc("GET /note/id/{id}", h.NoteHandler.GetNoteById)
+
 	// создание заметки
-	mux.HandleFunc("POST /notes", h.NoteHandler.PostNote)
+	mux.HandleFunc("POST /note", h.NoteHandler.PostNote)
 	// изменение
-	mux.HandleFunc("PUT /notes/{header}", h.NoteHandler.PutNote)
+	mux.HandleFunc("PUT /note/{id}", h.NoteHandler.PutNote)
 	// удаление
-	mux.HandleFunc("DELETE /notes/{header}", h.NoteHandler.DeleteNote)
+	mux.HandleFunc("DELETE /note/{id}", h.NoteHandler.DeleteNote)
 }
 
 func GetHandlers(services model.Service) (*http.ServeMux, *Handler) {
@@ -35,4 +42,16 @@ func GetHandlers(services model.Service) (*http.ServeMux, *Handler) {
 	mux := http.NewServeMux()
 	handler.registerRoutes(mux)
 	return mux, &handler
+}
+
+func handleError(w http.ResponseWriter, err error) {
+	log.Println(err.Error())
+	switch {
+	case errors.Is(err, model.ErrNotFound):
+		http.Error(w, err.Error(), http.StatusNotFound)
+	case errors.Is(err, model.ErrBadRequest):
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	default:
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }

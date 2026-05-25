@@ -1,0 +1,18 @@
+package note
+
+import (
+	"context"
+	"simple-server/internal/model"
+
+	"github.com/google/uuid"
+)
+
+type NoteStorage interface {
+	AddNote(ctx context.Context, note *model.Note) (*model.Note, error)
+	GetNotes(ctx context.Context) ([]model.Note, error)
+	GetNoteById(ctx context.Context, noteId uuid.UUID) (*model.Note, error)
+	GetNotesByHeader(ctx context.Context, header string) ([]model.Note, error)
+	UpdateNote(ctx context.Context, note *model.Note) error
+	DeleteNote(ctx context.Context, noteId uuid.UUID) error
+	NoteExists(ctx context.Context, noteId uuid.UUID) (bool, error)
+}

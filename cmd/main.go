@@ -8,19 +8,21 @@ import (
 	"syscall"
 	"time"
 
+	"simple-server/internal/config"
 	"simple-server/internal/handler"
-	"simple-server/internal/model"
 	"simple-server/internal/service"
 )
 
 func main() {
-	config, err := model.LoadConfig()
+	config, err := config.LoadConfig()
 	if err != nil {
-		log.Println("Ошибка при загрузке конфигурации")
-		panic(err)
+		log.Panic("Ошибка при загрузке конфигурации")
 	}
 
-	services := service.GetServices(config)
+	services, err := service.GetServices(config)
+	if err != nil {
+		log.Panicf("Ошибка при инициализации сервисов: %s", err.Error())
+	}
 	mux, _ := handler.GetHandlers(services)
 
 	// перехват сигналов завершения работы
@@ -35,7 +37,7 @@ func main() {
 	errChan := make(chan error)
 	go func() {
 		<-rootCtx.Done()
-		log.Println("Остановка сервара, ожидание завершения текущих запросов")
+		log.Println("Остановка сервера, ожидание завершения текущих запросов")
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 		defer cancel()
 		err := server.Shutdown(shutdownCtx)
