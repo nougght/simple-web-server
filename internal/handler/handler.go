@@ -16,15 +16,11 @@ func (h *Handler) registerRoutes(mux *http.ServeMux) {
 	// конвертация валют с использованием внешнего api
 	mux.HandleFunc("GET /currency", h.CurrencyHandler.ConvertCurrency)
 
-	// // получение всех заметок
-	mux.HandleFunc("GET /note", h.NoteHandler.GetAllNotes)
-
-	// получение заметок с указанным заголовком
-	mux.HandleFunc("GET /note/header/{header}", h.NoteHandler.GetNotesByHeader)
+	// // получение всех cписка заметок
+	mux.HandleFunc("GET /notes", h.NoteHandler.GetNotes)
 
 	// получение заметки по id
-	mux.HandleFunc("GET /note/id/{id}", h.NoteHandler.GetNoteById)
-
+	mux.HandleFunc("GET /note/{id}", h.NoteHandler.GetNoteById)
 	// создание заметки
 	mux.HandleFunc("POST /note", h.NoteHandler.PostNote)
 	// изменение

@@ -28,8 +28,8 @@ func NewApiClient(baseUrl string) *ApiClient {
 
 // запрос списка заметок
 func (c *ApiClient) FetchAllNotes() ([]model.Note, error) {
-	fmt.Println("GET /note")
-	resp, err := http.Get(fmt.Sprintf("%s/note", c.baseUrl))
+	fmt.Println("GET /notes")
+	resp, err := http.Get(fmt.Sprintf("%s/notes", c.baseUrl))
 	if err != nil {
 		return nil, err
 	}
@@ -50,35 +50,13 @@ func (c *ApiClient) FetchAllNotes() ([]model.Note, error) {
 	return notesList, nil
 }
 
-// запрос заметки
-func (c *ApiClient) FetchNoteById(id uuid.UUID) (*model.Note, error) {
-	fmt.Println("GET /note/id/" + id.String())
+func (c *ApiClient) FetchNotesByHeader(header string) ([]model.Note, error) {
+	params := url.Values{}
+	params.Add("header", header)
+	path := "/notes?" + params.Encode()
+	fmt.Println("GET " + path)
 
-	resp, err := http.Get(fmt.Sprintf("%s/note/id/%s", c.baseUrl, id.String()))
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	raw, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-	fmt.Println(resp.Status)
-	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("body: %s", string(raw))
-	}
-
-	var note model.Note
-	if err := json.Unmarshal(raw, &note); err != nil {
-		return nil, err
-	}
-	return &note, nil
-}
-
-func (c *ApiClient) FetchNoteByHeader(header string) ([]model.Note, error) {
-	fmt.Println("GET /note/header/" + header)
-
-	resp, err := http.Get(fmt.Sprintf("%s/note/header/%s", c.baseUrl, header))
+	resp, err := http.Get(c.baseUrl + path)
 	if err != nil {
 		return nil, err
 	}
@@ -97,6 +75,31 @@ func (c *ApiClient) FetchNoteByHeader(header string) ([]model.Note, error) {
 		return nil, err
 	}
 	return notes, nil
+}
+
+// запрос заметки
+func (c *ApiClient) FetchNoteById(id uuid.UUID) (*model.Note, error) {
+	fmt.Println("GET /note/" + id.String())
+
+	resp, err := http.Get(fmt.Sprintf("%s/note/%s", c.baseUrl, id.String()))
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	raw, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println(resp.Status)
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("body: %s", string(raw))
+	}
+
+	var note model.Note
+	if err := json.Unmarshal(raw, &note); err != nil {
+		return nil, err
+	}
+	return &note, nil
 }
 
 // запрос добавления новой заметки

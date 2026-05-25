@@ -39,7 +39,7 @@ func main() {
 		}
 
 		log.Println("Запрос заметок по заголовку")
-		if found, err := api.FetchNoteByHeader(addedNote.Header); err != nil {
+		if found, err := api.FetchNotesByHeader(addedNote.Header); err != nil {
 			fmt.Printf("Ошибка: %s\n", err.Error())
 		} else {
 			fmt.Println(found)

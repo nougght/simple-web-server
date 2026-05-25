@@ -84,10 +84,17 @@ func (h *NoteHandler) PostNote(w http.ResponseWriter, r *http.Request) {
 }
 
 // получение списка заметок
-func (h *NoteHandler) GetAllNotes(w http.ResponseWriter, r *http.Request) {
+func (h *NoteHandler) GetNotes(w http.ResponseWriter, r *http.Request) {
 	log.Printf("%s %s", r.Method, r.URL)
-
-	notesList, err := h.service.GetAllNotes(r.Context())
+	var (
+		notesList []model.Note
+		err       error
+	)
+	if header := r.URL.Query().Get("header"); header != "" {
+		notesList, err = h.service.GetNotesByHeader(r.Context(), header)
+	} else {
+		notesList, err = h.service.GetAllNotes(r.Context())
+	}
 	if err != nil {
 		handleError(w, err)
 		return
@@ -124,33 +131,6 @@ func (h *NoteHandler) GetNoteById(w http.ResponseWriter, r *http.Request) {
 
 	// конвертируем структуру в json и отправляем ответ
 	jsonResponse, err := json.Marshal(note)
-	if err != nil {
-		handleError(w, fmt.Errorf("json encoding error: %w", err))
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-	if _, err := w.Write(jsonResponse); err == nil {
-		log.Print("Ответ успешно отправлен\n\n")
-	} else {
-		log.Print(err.Error() + "\n\n")
-	}
-}
-
-// получение заметки по его заголовку
-func (h *NoteHandler) GetNotesByHeader(w http.ResponseWriter, r *http.Request) {
-	log.Printf("%s %s", r.Method, r.URL)
-
-	header := r.PathValue("header")
-
-	notes, err := h.service.GetNotesByHeader(r.Context(), header)
-	if err != nil {
-		handleError(w, err)
-		return
-	}
-
-	// конвертируем структуру в json и отправляем ответ
-	jsonResponse, err := json.Marshal(notes)
 	if err != nil {
 		handleError(w, fmt.Errorf("json encoding error: %w", err))
 		return

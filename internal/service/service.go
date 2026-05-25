@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"log"
 	"simple-server/internal/config"
 	"simple-server/internal/model"
 	"simple-server/internal/service/currency"
@@ -26,6 +27,7 @@ func GetServices(config *config.Config) (*Service, error) {
 	} else {
 		storage = memory.NewNoteStorage()
 	}
+	log.Printf("%s storage initialized", config.StorageType)
 	return &Service{
 		noteService:     note.NewNoteService(config, storage),
 		currencyService: currency.NewCurrencyService(config),
