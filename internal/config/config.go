@@ -43,10 +43,10 @@ func LoadConfig() (*Config, error) {
 	}
 
 	pgConfig := &PostgresConfig{}
+	if storageType != "postgres" && storageType != "memory" {
+		return nil, fmt.Errorf("неизвестный тип хранилища: %s", storageType)
+	}
 	if storageType == "postgres" {
-		if storageType != "postgres" && storageType != "memory" {
-			return nil, fmt.Errorf("неизвестный тип хранилища: %s", storageType)
-		}
 
 		pgConfig.Host, exists = os.LookupEnv("POSTGRES_HOST")
 		if !exists {
@@ -83,5 +83,5 @@ func LoadConfig() (*Config, error) {
 		return nil, fmt.Errorf("не найден api ключ")
 	}
 
-	return &Config{Postgres: pgConfig, FreecurrencyApiUrl: apiUrl, FreecurrencyApiKey: apiKey}, nil
+	return &Config{Postgres: pgConfig, StorageType: storageType, FreecurrencyApiUrl: apiUrl, FreecurrencyApiKey: apiKey}, nil
 }
