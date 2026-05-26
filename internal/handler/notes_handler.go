@@ -83,18 +83,18 @@ func (h *NoteHandler) PostNote(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// получение списка заметок
+// получение списка заметок c фильтрацией
 func (h *NoteHandler) GetNotes(w http.ResponseWriter, r *http.Request) {
 	log.Printf("%s %s", r.Method, r.URL)
 	var (
 		notesList []model.Note
 		err       error
 	)
+	filters := make(map[string]interface{})
 	if header := r.URL.Query().Get("header"); header != "" {
-		notesList, err = h.service.GetNotesByHeader(r.Context(), header)
-	} else {
-		notesList, err = h.service.GetAllNotes(r.Context())
+		filters["header"] = header
 	}
+	notesList, err = h.service.GetNotes(r.Context(), filters)
 	if err != nil {
 		handleError(w, err)
 		return

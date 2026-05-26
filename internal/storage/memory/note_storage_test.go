@@ -64,9 +64,10 @@ func TestAdd(t *testing.T) {
 }
 
 // проверка получения заметки
-func TestGetByHeader(t *testing.T) {
+func TestGetNotes(t *testing.T) {
 	notes := []model.Note{
 		{ID: uuid.New(), Header: "header1", Body: "some body"},
+		{ID: uuid.New(), Header: "header2", Body: "another body"},
 		{ID: uuid.New(), Header: "header2", Body: "sdsfsdfds"},
 	}
 	// создаем хранилище с заполненными данными
@@ -76,33 +77,34 @@ func TestGetByHeader(t *testing.T) {
 	randomHeader := "header" + uuid.New().String()
 	tests := []struct {
 		name     string
-		header   string
-		expected *model.Note
+		header   *string
+		expected []*model.Note
 	}{
-		{"default get", notes[0].Header, &notes[0]},
-		{"default get 2", notes[1].Header, &notes[1]},
-		{"not found", randomHeader, nil},
+		{"get all notes", nil, []*model.Note{&notes[0], &notes[1], &notes[2]}},
+		{"get by header", &notes[0].Header, []*model.Note{&notes[0]}},
+		{"get by header with multiple notes", &notes[1].Header, []*model.Note{&notes[1], &notes[2]}},
+		{"get by header that doesn't exist", &randomHeader, []*model.Note{}},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			result, err := storage.GetNotesByHeader(context.Background(), test.header)
-			if test.expected == nil {
-				assert.Nil(t, err)
-				assert.NotNil(t, result)
-				contains := slices.ContainsFunc(result, func(e model.Note) bool { return e.Header == test.header })
-				assert.False(t, contains)
-			} else {
-				assert.Nil(t, err)
-				require.NotNil(t, result)
-				require.GreaterOrEqual(t, len(result), 1)
+			filters := make(map[string]interface{})
+			if test.header != nil {
+				filters["header"] = *test.header
+			}
+			result, err := storage.GetNotes(context.Background(), filters)
 
-				contains := slices.ContainsFunc(result, func(e model.Note) bool { return e.Header == test.header && e.Body == test.expected.Body })
-				assert.True(t, contains)
+			assert.Nil(t, err)
+			assert.NotNil(t, result)
+			assert.Len(t, result, len(test.expected))
+			// проверяем, что результат содержит все ожидаемые заметки
+			for _, expectedNote := range test.expected {
+				assert.True(t, slices.ContainsFunc(result, func(note model.Note) bool {
+					return note == *expectedNote
+				}))
 			}
 		})
 	}
-
 }
 
 func TestUpdate(t *testing.T) {

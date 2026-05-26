@@ -73,21 +73,16 @@ func NewNoteStorage(cfg *config.PostgresConfig) (*NoteStorage, error) {
 	}, nil
 }
 
-// список всех заметок
-func (s *NoteStorage) GetNotes(ctx context.Context) ([]model.Note, error) {
+// список заметок с фильтрами
+func (s *NoteStorage) GetNotes(ctx context.Context, filters map[string]interface{}) ([]model.Note, error) {
 	notes := []model.Note{}
-	query := "SELECT * FROM notes"
-	if err := s.db.SelectContext(ctx, &notes, query); err != nil {
-		return nil, fmt.Errorf("select failed: %w", err)
-	}
-	return notes, nil
-}
+	query := "SELECT * FROM notes WHERE 1=1"
 
-// получение заметок по заголовку
-func (s *NoteStorage) GetNotesByHeader(ctx context.Context, header string) ([]model.Note, error) {
-	notes := []model.Note{}
-	query := "SELECT * FROM notes WHERE notes.header = $1"
-	if err := s.db.SelectContext(ctx, &notes, query, header); err != nil {
+	// добавляем фильтры если они есть
+	for key, value := range filters {
+		query += fmt.Sprintf(" AND %s = '%v'", key, value)
+	}
+	if err := s.db.SelectContext(ctx, &notes, query); err != nil {
 		return nil, fmt.Errorf("select failed: %w", err)
 	}
 	return notes, nil

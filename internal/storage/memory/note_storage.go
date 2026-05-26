@@ -39,24 +39,15 @@ func (s *NoteStorage) AddNote(ctx context.Context, note *model.Note) (*model.Not
 	return note, nil
 }
 
-func (s *NoteStorage) GetNotes(ctx context.Context) ([]model.Note, error) {
-	// заполняем список значениями из map
+func (s *NoteStorage) GetNotes(ctx context.Context, filters map[string]interface{}) ([]model.Note, error) {
 	notesList := make([]model.Note, 0, len(s.notes))
 	s.mtx.RLock()
 	for _, note := range s.notes {
-		notesList = append(notesList, note)
-	}
-	s.mtx.RUnlock()
-	return notesList, nil
-}
-
-func (s *NoteStorage) GetNotesByHeader(ctx context.Context, header string) ([]model.Note, error) {
-	s.mtx.RLock()
-	notesList := make([]model.Note, 0)
-	for _, note := range s.notes {
-		if note.Header == header {
-			notesList = append(notesList, note)
+		// проверка фильтров, если они есть
+		if value, ok := filters["header"]; ok && note.Header != value {
+			continue
 		}
+		notesList = append(notesList, note)
 	}
 	s.mtx.RUnlock()
 	return notesList, nil

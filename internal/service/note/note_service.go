@@ -32,10 +32,13 @@ func (s *NoteService) AddNote(ctx context.Context, note *model.Note) (*model.Not
 	return created, nil
 }
 
-func (s *NoteService) GetAllNotes(ctx context.Context) ([]model.Note, error) {
-	notes, err := s.storage.GetNotes(ctx)
+func (s *NoteService) GetNotes(ctx context.Context, filters map[string]interface{}) ([]model.Note, error) {
+	notes, err := s.storage.GetNotes(ctx, filters)
+	if header, ok := filters["header"]; ok && header == "" {
+		return nil, fmt.Errorf("header filter can't be empty: %w", model.ErrBadRequest)
+	}
 	if err != nil {
-		return nil, fmt.Errorf("get all notes: %w", err)
+		return nil, fmt.Errorf("get notes with filters %v: %w", filters, err)
 	}
 	return notes, err
 }
@@ -46,14 +49,6 @@ func (s *NoteService) GetNoteByID(ctx context.Context, noteID uuid.UUID) (*model
 		return nil, fmt.Errorf("get note by ID: %w", err)
 	}
 	return note, err
-}
-
-func (s *NoteService) GetNotesByHeader(ctx context.Context, header string) ([]model.Note, error) {
-	notes, err := s.storage.GetNotesByHeader(ctx, header)
-	if err != nil {
-		return nil, fmt.Errorf("get notes by header: %w", err)
-	}
-	return notes, err
 }
 
 func (s *NoteService) UpdateNote(ctx context.Context, note *model.Note) error {
