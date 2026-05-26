@@ -3,19 +3,54 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"embed"
 	"errors"
 	"fmt"
+	"log"
 	"simple-server/internal/config"
 	"simple-server/internal/model"
 
+	"github.com/golang-migrate/migrate/v4"
+	pg "github.com/golang-migrate/migrate/v4/database/postgres"
+	"github.com/golang-migrate/migrate/v4/source/iofs"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 )
 
+//go:embed migrations/*.sql
+var migrationsFS embed.FS
+
 type NoteStorage struct {
 	config *config.PostgresConfig
 	db     *sqlx.DB
+}
+
+func RunMigrations(db *sqlx.DB) error {
+	sourceDriver, err := iofs.New(migrationsFS, "migrations")
+	if err != nil {
+		return fmt.Errorf("failed to create iofs driver: %w", err)
+	}
+
+	dbDriver, err := pg.WithInstance(db.DB, &pg.Config{})
+	if err != nil {
+		return fmt.Errorf("failed to create postgres driver: %w", err)
+	}
+
+	m, err := migrate.NewWithInstance("iofs", sourceDriver, "postgres", dbDriver)
+	if err != nil {
+		return fmt.Errorf("failed to create migrate instance: %w", err)
+	}
+
+	if err := m.Up(); err != nil {
+		if errors.Is(err, migrate.ErrNoChange) {
+			log.Println("no changes to migrate")
+			return nil
+		}
+		return fmt.Errorf("migration failed: %w", err)
+	}
+
+	return nil
 }
 
 func NewNoteStorage(cfg *config.PostgresConfig) (*NoteStorage, error) {
@@ -26,6 +61,12 @@ func NewNoteStorage(cfg *config.PostgresConfig) (*NoteStorage, error) {
 	if err := db.Ping(); err != nil {
 		return nil, fmt.Errorf("database ping failed: %w", err)
 	}
+
+	if err := RunMigrations(db); err != nil {
+		return nil, fmt.Errorf("migrations failed: %w", err)
+	}
+	log.Println("successful migrations")
+
 	return &NoteStorage{
 		config: cfg,
 		db:     db,
