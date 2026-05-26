@@ -11,7 +11,7 @@ import (
 )
 
 var cfg = &config.Config{
-	StorageType: "memory",
+	StorageType: model.StorageTypeMemory,
 }
 
 func TestAddNote(t *testing.T) {

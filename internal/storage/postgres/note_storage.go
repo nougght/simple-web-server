@@ -52,11 +52,11 @@ func (s *NoteStorage) GetNotesByHeader(ctx context.Context, header string) ([]mo
 	return notes, nil
 }
 
-// получение заметки по id
-func (s *NoteStorage) GetNoteById(ctx context.Context, id uuid.UUID) (*model.Note, error) {
+// получение заметки по ID
+func (s *NoteStorage) GetNoteByID(ctx context.Context, ID uuid.UUID) (*model.Note, error) {
 	var note model.Note
-	query := "SELECT * FROM notes WHERE notes.note_id = $1"
-	if err := s.db.GetContext(ctx, &note, query, id); err != nil {
+	query := "SELECT * FROM notes WHERE notes.id = $1"
+	if err := s.db.GetContext(ctx, &note, query, ID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, model.ErrNotFound
 		}
@@ -67,12 +67,12 @@ func (s *NoteStorage) GetNoteById(ctx context.Context, id uuid.UUID) (*model.Not
 
 // добавление заметки
 func (s *NoteStorage) AddNote(ctx context.Context, note *model.Note) (*model.Note, error) {
-	// insert с возвратом сгенерированного id
+	// insert с возвратом сгенерированного ID
 	query := `INSERT INTO notes(header, body)
 			  VALUES ($1, $2)
-			  RETURNING note_id`
+			  RETURNING id`
 
-	err := s.db.QueryRowxContext(ctx, query, note.Header, note.Body).Scan(&note.NoteId)
+	err := s.db.QueryRowxContext(ctx, query, note.Header, note.Body).Scan(&note.ID)
 	if err != nil {
 		return nil, fmt.Errorf("insert failed: %w", err)
 	}
@@ -83,14 +83,14 @@ func (s *NoteStorage) AddNote(ctx context.Context, note *model.Note) (*model.Not
 func (s *NoteStorage) UpdateNote(ctx context.Context, note *model.Note) error {
 	query := `UPDATE notes
 			  SET header = $1, body = $2
-			  WHERE notes.note_id = $3`
+			  WHERE notes.id = $3`
 
-	res, err := s.db.ExecContext(ctx, query, note.Header, note.Body, note.NoteId)
+	res, err := s.db.ExecContext(ctx, query, note.Header, note.Body, note.ID)
 	if err != nil {
 		return fmt.Errorf("update failed: %w", err)
 	}
 
-	// если заметки с таким id нет - возвращаем ошибку
+	// если заметки с таким ID нет - возвращаем ошибку
 	rowsCount, _ := res.RowsAffected()
 	if rowsCount == 0 {
 		return model.ErrNotFound
@@ -99,8 +99,8 @@ func (s *NoteStorage) UpdateNote(ctx context.Context, note *model.Note) error {
 }
 
 // удаление заметки
-func (s *NoteStorage) DeleteNote(ctx context.Context, noteId uuid.UUID) error {
-	_, err := s.db.ExecContext(ctx, `DELETE FROM notes WHERE notes.note_id = $1`, noteId)
+func (s *NoteStorage) DeleteNote(ctx context.Context, noteID uuid.UUID) error {
+	_, err := s.db.ExecContext(ctx, `DELETE FROM notes WHERE notes.id = $1`, noteID)
 	if err != nil {
 		return fmt.Errorf("delete failed: %w", err)
 	}
@@ -108,9 +108,9 @@ func (s *NoteStorage) DeleteNote(ctx context.Context, noteId uuid.UUID) error {
 }
 
 // проверка существования заметки (не используется)
-func (s *NoteStorage) NoteExists(ctx context.Context, id uuid.UUID) (bool, error) {
+func (s *NoteStorage) NoteExists(ctx context.Context, noteID uuid.UUID) (bool, error) {
 	var exists bool
-	err := s.db.GetContext(ctx, &exists, "SELECT EXISTS(SELECT 1 FROM notes WHERE notes.note_id = $1)", id)
+	err := s.db.GetContext(ctx, &exists, "SELECT EXISTS(SELECT 1 FROM notes WHERE notes.id = $1)", noteID)
 	if err != nil {
 		return false, err
 	}

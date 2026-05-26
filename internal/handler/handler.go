@@ -19,8 +19,8 @@ func (h *Handler) registerRoutes(mux *http.ServeMux) {
 	// // получение всех cписка заметок
 	mux.HandleFunc("GET /notes", h.NoteHandler.GetNotes)
 
-	// получение заметки по id
-	mux.HandleFunc("GET /note/{id}", h.NoteHandler.GetNoteById)
+	// получение заметки по ID
+	mux.HandleFunc("GET /note/{id}", h.NoteHandler.GetNoteByID)
 	// создание заметки
 	mux.HandleFunc("POST /note", h.NoteHandler.PostNote)
 	// изменение

@@ -78,10 +78,10 @@ func (c *ApiClient) FetchNotesByHeader(header string) ([]model.Note, error) {
 }
 
 // запрос заметки
-func (c *ApiClient) FetchNoteById(id uuid.UUID) (*model.Note, error) {
-	fmt.Println("GET /note/" + id.String())
+func (c *ApiClient) FetchNoteByID(ID uuid.UUID) (*model.Note, error) {
+	fmt.Println("GET /note/" + ID.String())
 
-	resp, err := http.Get(fmt.Sprintf("%s/note/%s", c.baseUrl, id.String()))
+	resp, err := http.Get(fmt.Sprintf("%s/note/%s", c.baseUrl, ID.String()))
 	if err != nil {
 		return nil, err
 	}
@@ -133,7 +133,7 @@ func (c *ApiClient) AddNote(note *model.Note) (*model.Note, error) {
 func (c *ApiClient) UpdateNote(note *model.Note) error {
 	jsonBody, _ := json.Marshal(*note)
 
-	path := fmt.Sprintf("/note/%s", url.PathEscape(note.NoteId.String()))
+	path := fmt.Sprintf("/note/%s", url.PathEscape(note.ID.String()))
 	fmt.Printf("PUT %s \n%s\n", path, jsonBody)
 	req, _ := http.NewRequest(http.MethodPut, c.baseUrl+path, bytes.NewBuffer(jsonBody))
 	req.Header.Set("Content-Type", "application/json")
@@ -155,9 +155,9 @@ func (c *ApiClient) UpdateNote(note *model.Note) error {
 }
 
 // запрос удаления заметки
-func (c *ApiClient) DeleteNote(id uuid.UUID) error {
-	fmt.Printf("DELETE /note/%s", id.String())
-	req, _ := http.NewRequest(http.MethodDelete, fmt.Sprintf("%s/note/%s", c.baseUrl, id.String()), nil)
+func (c *ApiClient) DeleteNote(ID uuid.UUID) error {
+	fmt.Printf("DELETE /note/%s", ID.String())
+	req, _ := http.NewRequest(http.MethodDelete, fmt.Sprintf("%s/note/%s", c.baseUrl, ID.String()), nil)
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {

@@ -45,7 +45,7 @@ func TestAdd(t *testing.T) {
 				assert.Equal(t, test.note.Body, result.Body)
 			}
 
-			note, ok := storage.notes[test.note.NoteId]
+			note, ok := storage.notes[test.note.ID]
 			if test.errorExpected {
 				assert.False(t, ok)
 				assert.Nil(t, note)
@@ -66,8 +66,8 @@ func TestAdd(t *testing.T) {
 // проверка получения заметки
 func TestGetByHeader(t *testing.T) {
 	notes := []model.Note{
-		{NoteId: uuid.New(), Header: "header1", Body: "some body"},
-		{NoteId: uuid.New(), Header: "header2", Body: "sdsfsdfds"},
+		{ID: uuid.New(), Header: "header1", Body: "some body"},
+		{ID: uuid.New(), Header: "header2", Body: "sdsfsdfds"},
 	}
 	// создаем хранилище с заполненными данными
 	storage := NewNoteStorageWithData(notes)
@@ -100,7 +100,6 @@ func TestGetByHeader(t *testing.T) {
 				contains := slices.ContainsFunc(result, func(e model.Note) bool { return e.Header == test.header && e.Body == test.expected.Body })
 				assert.True(t, contains)
 			}
-
 		})
 	}
 
@@ -108,12 +107,12 @@ func TestGetByHeader(t *testing.T) {
 
 func TestUpdate(t *testing.T) {
 	notes := []model.Note{
-		{NoteId: uuid.New(), Header: "header1", Body: "some body"},
+		{ID: uuid.New(), Header: "header1", Body: "some body"},
 	}
 	storage := NewNoteStorageWithData(notes)
 	log.Println(storage.notes)
 
-	newNote := model.Note{NoteId: notes[0].NoteId, Header: "header1", Body: "new body"}
+	newNote := model.Note{ID: notes[0].ID, Header: "header1", Body: "new body"}
 
 	// обновляем заметку (с тем же заголовком)
 	err := storage.UpdateNote(context.Background(), &newNote)
@@ -121,7 +120,7 @@ func TestUpdate(t *testing.T) {
 	assert.Nil(t, err)
 
 	// заметка должна замениться
-	result, ok := storage.notes[newNote.NoteId]
+	result, ok := storage.notes[newNote.ID]
 	assert.True(t, ok)
 	require.NotNil(t, result)
 	assert.Equal(t, newNote, result)
@@ -129,17 +128,17 @@ func TestUpdate(t *testing.T) {
 
 func TestDelete(t *testing.T) {
 	notes := []model.Note{
-		{NoteId: uuid.New(), Header: "header1", Body: "some body"},
-		{NoteId: uuid.New(), Header: "header2", Body: "sfjdsiofj"},
+		{ID: uuid.New(), Header: "header1", Body: "some body"},
+		{ID: uuid.New(), Header: "header2", Body: "sfjdsiofj"},
 	}
 	storage := NewNoteStorageWithData(notes)
 
 	// обновляем заметку (с тем же заголовком)
-	err := storage.DeleteNote(context.Background(), notes[0].NoteId)
+	err := storage.DeleteNote(context.Background(), notes[0].ID)
 	assert.Nil(t, err)
 
 	// заметка должна остсутствовать
-	_, ok := storage.notes[notes[0].NoteId]
+	_, ok := storage.notes[notes[0].ID]
 	assert.False(t, ok)
 
 	if len(storage.notes) != 1 {

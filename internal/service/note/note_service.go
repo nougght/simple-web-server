@@ -40,10 +40,10 @@ func (s *NoteService) GetAllNotes(ctx context.Context) ([]model.Note, error) {
 	return notes, err
 }
 
-func (s *NoteService) GetNoteById(ctx context.Context, noteId uuid.UUID) (*model.Note, error) {
-	note, err := s.storage.GetNoteById(ctx, noteId)
+func (s *NoteService) GetNoteByID(ctx context.Context, noteID uuid.UUID) (*model.Note, error) {
+	note, err := s.storage.GetNoteByID(ctx, noteID)
 	if err != nil {
-		return nil, fmt.Errorf("get note by id: %w", err)
+		return nil, fmt.Errorf("get note by ID: %w", err)
 	}
 	return note, err
 }
@@ -64,6 +64,6 @@ func (s *NoteService) UpdateNote(ctx context.Context, note *model.Note) error {
 	return nil
 }
 
-func (s *NoteService) DeleteNote(ctx context.Context, noteId uuid.UUID) error {
-	return s.storage.DeleteNote(ctx, noteId)
+func (s *NoteService) DeleteNote(ctx context.Context, noteID uuid.UUID) error {
+	return s.storage.DeleteNote(ctx, noteID)
 }

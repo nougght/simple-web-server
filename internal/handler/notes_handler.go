@@ -37,7 +37,7 @@ func (h *NoteHandler) parseNoteFromRequest(r *http.Request) (*model.Note, error)
 }
 
 func (h *NoteHandler) parsePutNoteRequest(r *http.Request) (*model.Note, error) {
-	id, err := uuid.Parse(r.PathValue("id"))
+	ID, err := uuid.Parse(r.PathValue("id"))
 	if err != nil {
 		return nil, fmt.Errorf("invalid note id: %w: %w", err, model.ErrBadRequest)
 	}
@@ -47,8 +47,8 @@ func (h *NoteHandler) parsePutNoteRequest(r *http.Request) (*model.Note, error) 
 	}
 
 	// если id из URL и тела не совпадают
-	if id != note.NoteId {
-		return nil, fmt.Errorf("id in URL '%s' doesn't match id in body'%s': %w", id, note.NoteId, model.ErrBadRequest)
+	if ID != note.ID {
+		return nil, fmt.Errorf("id in URL '%s' doesn't match id in body'%s': %w", ID, note.ID, model.ErrBadRequest)
 	}
 
 	return note, nil
@@ -114,16 +114,16 @@ func (h *NoteHandler) GetNotes(w http.ResponseWriter, r *http.Request) {
 }
 
 // получение заметки по его ID
-func (h *NoteHandler) GetNoteById(w http.ResponseWriter, r *http.Request) {
+func (h *NoteHandler) GetNoteByID(w http.ResponseWriter, r *http.Request) {
 	log.Printf("%s %s", r.Method, r.URL)
 
-	id, err := uuid.Parse(r.PathValue("id"))
+	ID, err := uuid.Parse(r.PathValue("id"))
 	if err != nil {
-		handleError(w, fmt.Errorf("invalid note id: %w: %w", err, model.ErrBadRequest))
+		handleError(w, fmt.Errorf("invalid note ID: %w: %w", err, model.ErrBadRequest))
 		return
 	}
 
-	note, err := h.service.GetNoteById(r.Context(), id)
+	note, err := h.service.GetNoteByID(r.Context(), ID)
 	if err != nil {
 		handleError(w, err)
 		return
@@ -166,13 +166,13 @@ func (h *NoteHandler) PutNote(w http.ResponseWriter, r *http.Request) {
 // удаление заметки
 func (h *NoteHandler) DeleteNote(w http.ResponseWriter, r *http.Request) {
 	log.Printf("%s %s", r.Method, r.URL)
-	noteId, err := uuid.Parse(r.PathValue("id"))
+	ID, err := uuid.Parse(r.PathValue("id"))
 	if err != nil {
-		handleError(w, fmt.Errorf("invalid note id: %w: %w", err, model.ErrBadRequest))
+		handleError(w, fmt.Errorf("invalid note ID: %w: %w", err, model.ErrBadRequest))
 		return
 	}
 
-	if err := h.service.DeleteNote(r.Context(), noteId); err != nil {
+	if err := h.service.DeleteNote(r.Context(), ID); err != nil {
 		handleError(w, err)
 		return
 	}

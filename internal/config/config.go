@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"simple-server/internal/model"
 
 	"github.com/joho/godotenv"
 )
@@ -43,11 +44,11 @@ func LoadConfig() (*Config, error) {
 	}
 
 	pgConfig := &PostgresConfig{}
-	if storageType != "postgres" && storageType != "memory" {
+	if storageType != model.StorageTypePostgres && storageType != model.StorageTypeMemory {
 		return nil, fmt.Errorf("неизвестный тип хранилища: %s", storageType)
 	}
-	if storageType == "postgres" {
 
+	if storageType == model.StorageTypePostgres {
 		pgConfig.Host, exists = os.LookupEnv("POSTGRES_HOST")
 		if !exists {
 			return nil, fmt.Errorf("не найден хост postgres")
