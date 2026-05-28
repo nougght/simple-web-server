@@ -135,7 +135,6 @@ func TestDelete(t *testing.T) {
 	}
 	storage := NewNoteStorageWithData(notes)
 
-	// обновляем заметку (с тем же заголовком)
 	err := storage.DeleteNote(context.Background(), notes[0].ID)
 	assert.Nil(t, err)
 

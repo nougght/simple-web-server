@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -74,17 +73,7 @@ func (h *NoteHandler) PostNote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	jsonResponse, err := json.Marshal(note)
-	if err != nil {
-		handleError(w, fmt.Errorf("json encoding error: %w", err))
-		return
-	}
-	w.WriteHeader(http.StatusOK)
-	if _, err := w.Write(jsonResponse); err == nil {
-		log.Print("Ответ успешно отправлен\n\n")
-	} else {
-		log.Println(err.Error())
-	}
+	writeJSON(w, http.StatusOK, note)
 }
 
 // получение списка заметок c фильтрацией
@@ -104,17 +93,7 @@ func (h *NoteHandler) GetNotes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	jsonResponse, err := json.Marshal(notesList)
-	if err != nil {
-		handleError(w, fmt.Errorf("json encoding error: %w", err))
-		return
-	}
-
-	if _, err := w.Write(jsonResponse); err == nil {
-		log.Print("Ответ успешно отправлен\n\n")
-	} else {
-		log.Print(err.Error() + "\n\n")
-	}
+	writeJSON(w, http.StatusOK, notesList)
 }
 
 // получение заметки по его ID
@@ -133,19 +112,7 @@ func (h *NoteHandler) GetNoteByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// конвертируем структуру в json и отправляем ответ
-	jsonResponse, err := json.Marshal(note)
-	if err != nil {
-		handleError(w, fmt.Errorf("json encoding error: %w", err))
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-	if _, err := w.Write(jsonResponse); err == nil {
-		log.Print("Ответ успешно отправлен\n\n")
-	} else {
-		log.Print(err.Error() + "\n\n")
-	}
+	writeJSON(w, http.StatusOK, note)
 }
 
 // изменение заметки
@@ -163,8 +130,7 @@ func (h *NoteHandler) PutNote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	log.Print("Заметка обновлена\n\n")
+	writeJSON(w, http.StatusOK, nil)
 }
 
 // удаление заметки
@@ -181,6 +147,5 @@ func (h *NoteHandler) DeleteNote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	log.Print("Заметка удалена\n\n")
+	writeJSON(w, http.StatusOK, nil)
 }

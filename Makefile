@@ -4,20 +4,15 @@
 include .env
 
 # проверка, тестирование, сборка и запуск в контейнере
-all: lint test docker-build docker-up
+all: lint test init-storage docker-build docker-up
 
-all-windows: lint test build-windows run-windows 
+all-windows: lint test init-storage build-windows run-windows 
 
 # сборка под windows
 build-windows: 
 	go build -o bin/server.exe ./cmd
 
-run-windows: 
-ifeq (${STORAGE_TYPE},postgres)
-	docker-compose -p simple-server -f docker/docker-compose.yml up -d --build postgres
-else
-	echo memory storage
-endif
+run-windows:
 	./bin/server.exe
 
 # запуск линтеров
@@ -37,9 +32,12 @@ docker-build:
 
 # запуск контейнера
 docker-up:
+	docker-compose -p simple-server -f docker/docker-compose.yml up -d --build server
+
+
+init-storage:
 ifeq (${STORAGE_TYPE},postgres)
 	docker-compose -p simple-server -f docker/docker-compose.yml up -d --build postgres
 else
 	echo memory storage
 endif
-	docker-compose -p simple-server -f docker/docker-compose.yml up -d --build server

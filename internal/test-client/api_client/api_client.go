@@ -1,4 +1,3 @@
-// nolint
 package api_client
 
 import (
