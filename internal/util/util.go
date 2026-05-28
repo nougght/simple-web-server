@@ -21,8 +21,14 @@ func DecodeJson(rawData []byte, obj any) error {
 }
 
 // закрытие тела ответа с обработкой ошибки
-func CloseBody(resp *http.Response) {
+func CloseResponseBody(resp *http.Response) {
 	if err := resp.Body.Close(); err != nil {
 		log.Printf("response body close error: %s", err.Error())
+	}
+}
+
+func CloseRequestBody(req *http.Request) {
+	if err := req.Body.Close(); err != nil {
+		log.Printf("request body close error: %s", err.Error())
 	}
 }

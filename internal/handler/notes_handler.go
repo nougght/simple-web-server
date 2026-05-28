@@ -24,8 +24,8 @@ func NewNoteHandler(service model.NoteService) *NoteHandler {
 }
 
 func (h *NoteHandler) parseNoteFromRequest(r *http.Request) (*model.Note, error) {
+	defer util.CloseRequestBody(r)
 	raw, err := io.ReadAll(r.Body)
-	_ = r.Body.Close()
 	if err != nil {
 		return nil, fmt.Errorf("body reading error: %w", err)
 	}
@@ -41,16 +41,20 @@ func (h *NoteHandler) parsePutNoteRequest(r *http.Request) (*model.Note, error) 
 	if err != nil {
 		return nil, fmt.Errorf("invalid note id: %w: %w", err, model.ErrBadRequest)
 	}
-	note, err := h.parseNoteFromRequest(r)
+	defer util.CloseRequestBody(r)
+	raw, err := io.ReadAll(r.Body)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("body reading error: %w", err)
 	}
-
-	// если id из URL и тела не совпадают
-	if ID != note.ID {
-		return nil, fmt.Errorf("id in URL '%s' doesn't match id in body'%s': %w", ID, note.ID, model.ErrBadRequest)
+	var updateNote model.UpdateNoteRequestBody
+	if err = util.DecodeJson(raw, &updateNote); err != nil {
+		return nil, fmt.Errorf("%w: %w", err, model.ErrBadRequest)
 	}
-
+	note := &model.Note{
+		ID:     ID,
+		Header: updateNote.Header,
+		Body:   updateNote.Body,
+	}
 	return note, nil
 }
 
@@ -144,7 +148,7 @@ func (h *NoteHandler) GetNoteByID(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Изменение заметки по его заголовку
+// изменение заметки
 func (h *NoteHandler) PutNote(w http.ResponseWriter, r *http.Request) {
 	log.Printf("%s %s", r.Method, r.URL)
 

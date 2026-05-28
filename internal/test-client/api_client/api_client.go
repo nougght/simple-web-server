@@ -11,6 +11,7 @@ import (
 	"strconv"
 
 	"simple-server/internal/model"
+	"simple-server/internal/util"
 
 	"github.com/google/uuid"
 )
@@ -33,7 +34,7 @@ func (c *ApiClient) FetchAllNotes() ([]model.Note, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer util.CloseResponseBody(resp)
 	raw, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
@@ -60,7 +61,7 @@ func (c *ApiClient) FetchNotesByHeader(header string) ([]model.Note, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer util.CloseResponseBody(resp)
 	raw, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
@@ -85,7 +86,7 @@ func (c *ApiClient) FetchNoteByID(ID uuid.UUID) (*model.Note, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer util.CloseResponseBody(resp)
 	raw, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
@@ -111,7 +112,7 @@ func (c *ApiClient) AddNote(note *model.Note) (*model.Note, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer util.CloseResponseBody(resp)
 	raw, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
@@ -131,7 +132,11 @@ func (c *ApiClient) AddNote(note *model.Note) (*model.Note, error) {
 
 // запрос изменения заметки
 func (c *ApiClient) UpdateNote(note *model.Note) error {
-	jsonBody, _ := json.Marshal(*note)
+	updateNote := model.UpdateNoteRequestBody{
+		Header: note.Header,
+		Body:   note.Body,
+	}
+	jsonBody, _ := json.Marshal(updateNote)
 
 	path := fmt.Sprintf("/note/%s", url.PathEscape(note.ID.String()))
 	fmt.Printf("PUT %s \n%s\n", path, jsonBody)
@@ -141,7 +146,7 @@ func (c *ApiClient) UpdateNote(note *model.Note) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer util.CloseResponseBody(resp)
 	raw, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return err
@@ -165,7 +170,7 @@ func (c *ApiClient) DeleteNote(ID uuid.UUID) error {
 	}
 	fmt.Println(resp.Status)
 
-	defer resp.Body.Close()
+	defer util.CloseResponseBody(resp)
 	raw, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return err
@@ -197,7 +202,7 @@ func (c *ApiClient) Convert(amount float64, baseCurrency string, targetCurrencie
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer util.CloseResponseBody(resp)
 	raw, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
