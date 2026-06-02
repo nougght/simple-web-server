@@ -1,4 +1,3 @@
-// nolint
 package main
 
 import (
@@ -22,28 +21,47 @@ func main() {
 	}
 
 	log.Println("Добавление новой заметки")
-	newNote := model.Note{Header: "my note 1", Body: "dfjsiefsdjflsehdjf"}
-	addedNote, err := api.AddNote(&newNote)
-	if err != nil {
-		fmt.Printf("Ошибка: %s\n", err.Error())
-	} else {
-		fmt.Printf("Добавлена заметка: %v\n", addedNote)
+	newNotes := []model.Note{
+		{Header: "header123", Body: "some body"},
+		{Header: "header123", Body: "another body"},
+		{Header: "other", Body: ""},
+	}
+	var addedNotes []*model.Note
+	for _, newNote := range newNotes {
+		addedNote, err := api.AddNote(&newNote)
+		if err != nil {
+			fmt.Printf("Ошибка: %s\n", err.Error())
+		} else {
+			addedNotes = append(addedNotes, addedNote)
+		}
 	}
 
-	if addedNote != nil {
-		log.Println("Запрос заметки по Id")
-		if note, err := api.FetchNoteById(addedNote.NoteId); err != nil {
+	if len(addedNotes) > 0 {
+		log.Println("Запрос заметки по ID")
+		if note, err := api.FetchNoteByID(addedNotes[0].ID); err != nil {
 			fmt.Printf("Ошибка: %s\n", err.Error())
 		} else {
 			fmt.Println(note)
 		}
 
 		log.Println("Запрос заметок по заголовку")
-		if found, err := api.FetchNoteByHeader(addedNote.Header); err != nil {
+		if result, err := api.FetchNotesByHeader(addedNotes[2].Header); err != nil {
 			fmt.Printf("Ошибка: %s\n", err.Error())
 		} else {
-			fmt.Println(found)
-			if !slices.ContainsFunc(found, func(e model.Note) bool { return e.NoteId == addedNote.NoteId }) {
+			fmt.Println(result)
+			if !slices.ContainsFunc(result, func(e model.Note) bool { return e.ID == addedNotes[2].ID }) {
+				fmt.Print("Ответ не совпадает с ожидаемым\n\n")
+			} else {
+				fmt.Print("Ожидаемый результат\n\n")
+			}
+		}
+		log.Println("Запрос нескольких заметок по заголовку")
+		if result, err := api.FetchNotesByHeader(addedNotes[0].Header); err != nil {
+			fmt.Printf("Ошибка: %s\n", err.Error())
+		} else {
+			fmt.Println(result)
+			if !slices.ContainsFunc(result, func(e model.Note) bool { return e == *addedNotes[0] }) ||
+				!slices.ContainsFunc(result, func(e model.Note) bool { return e == *addedNotes[1] }) {
 				fmt.Print("Ответ не совпадает с ожидаемым\n\n")
 			} else {
 				fmt.Print("Ожидаемый результат\n\n")
@@ -51,11 +69,11 @@ func main() {
 		}
 
 		log.Println("Изменение заметки")
-		updatedNote := model.Note{NoteId: addedNote.NoteId, Header: addedNote.Header, Body: "new body"}
+		updatedNote := model.Note{ID: addedNotes[0].ID, Header: addedNotes[0].Header, Body: "new body"}
 		if err := api.UpdateNote(&updatedNote); err != nil {
 			fmt.Printf("Ошибка: %s\n", err.Error())
 		} else {
-			if note, err := api.FetchNoteById(updatedNote.NoteId); err != nil {
+			if note, err := api.FetchNoteByID(updatedNote.ID); err != nil {
 				fmt.Printf("Ошибка: %s\n", err.Error())
 			} else {
 				if *note != updatedNote {
@@ -67,10 +85,10 @@ func main() {
 		}
 
 		log.Println("Удаление заметки")
-		if err := api.DeleteNote(updatedNote.NoteId); err != nil {
+		if err := api.DeleteNote(updatedNote.ID); err != nil {
 			fmt.Printf("Ошибка: %s\n", err.Error())
 		} else {
-			if note, err := api.FetchNoteById(updatedNote.NoteId); err != nil {
+			if note, err := api.FetchNoteByID(updatedNote.ID); err != nil {
 				fmt.Printf("Ошибка (ожидаемо после удаления): %s\n", err.Error())
 			} else {
 				fmt.Printf("Заметка не удалена: %v\n\n", note)

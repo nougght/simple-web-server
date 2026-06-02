@@ -56,17 +56,16 @@ FREECURRENCY_API_KEY=fca_live_8lWYrQ3cQDWZob9q0evmwYSrRYH6mtdPU5XTMfJc
 
 ### Операции с заметками
 
-- `GET /note` - все заметки, ответ - список Note
+- `GET /notes` - все заметки, ответ - список Note \
+    фильтрация по заголовку с параметром `header`
 
-- `GET /note/header/{header}` - заметки с указанным заголовком, ответ - список Note
-
-- `GET /note/id/{id}` - заметка по её id, ответ - объект Note
+- `GET /note/{id}` - получение заметки, ответ - объект Note
 
 - `POST /note` - создание заметки, Note передается в теле, ответ - созданная заметка с id
 
-- `PUT /note/{id}` - изменение заметки по id, Note передается в теле
+- `PUT /note/{id}` - изменение заметки, Note передается в теле
 
-- `DELETE /note/{id}` - удаление заметки по id
+- `DELETE /note/{id}` - удаление заметки
 
 ### Конвертация валют
 

@@ -36,9 +36,8 @@ func (s *CurrencyService) requestCurrencyRates(baseCurrency string, targetCurren
 		return nil, err
 	}
 
-	defer util.CloseBody(resp)
+	defer util.CloseResponseBody(resp)
 
-	// читаем тело запроса
 	raw, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
@@ -46,7 +45,6 @@ func (s *CurrencyService) requestCurrencyRates(baseCurrency string, targetCurren
 	log.Println("Получены курсы валют: " + string(raw))
 
 	var respBody model.CurrencyRatesResponse
-	// декодируем json
 	if err := util.DecodeJson(raw, &respBody); err != nil {
 		return nil, err
 	}

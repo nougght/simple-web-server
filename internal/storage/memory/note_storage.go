@@ -23,7 +23,7 @@ func NewNoteStorage() *NoteStorage {
 func NewNoteStorageWithData(notesList []model.Note) *NoteStorage {
 	notes := make(map[uuid.UUID]model.Note, len(notesList))
 	for _, elem := range notesList {
-		notes[elem.NoteId] = elem
+		notes[elem.ID] = elem
 	}
 
 	return &NoteStorage{
@@ -32,41 +32,32 @@ func NewNoteStorageWithData(notesList []model.Note) *NoteStorage {
 }
 
 func (s *NoteStorage) AddNote(ctx context.Context, note *model.Note) (*model.Note, error) {
-	note.NoteId = uuid.New()
+	note.ID = uuid.New()
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
-	s.notes[note.NoteId] = *note
+	s.notes[note.ID] = *note
 	return note, nil
 }
 
-func (s *NoteStorage) GetNotes(ctx context.Context) ([]model.Note, error) {
-	// заполняем список значениями из map
+func (s *NoteStorage) GetNotes(ctx context.Context, filters map[string]interface{}) ([]model.Note, error) {
 	notesList := make([]model.Note, 0, len(s.notes))
 	s.mtx.RLock()
 	for _, note := range s.notes {
+		// проверка фильтров, если они есть
+		if value, ok := filters["header"]; ok && note.Header != value {
+			continue
+		}
 		notesList = append(notesList, note)
 	}
 	s.mtx.RUnlock()
 	return notesList, nil
 }
 
-func (s *NoteStorage) GetNotesByHeader(ctx context.Context, header string) ([]model.Note, error) {
-	s.mtx.RLock()
-	notesList := make([]model.Note, 0)
-	for _, note := range s.notes {
-		if note.Header == header {
-			notesList = append(notesList, note)
-		}
-	}
-	s.mtx.RUnlock()
-	return notesList, nil
-}
-
-func (s *NoteStorage) GetNoteById(ctx context.Context, id uuid.UUID) (*model.Note, error) {
+func (s *NoteStorage) GetNoteByID(ctx context.Context, noteID uuid.UUID) (*model.Note, error) {
 	var note model.Note
 	s.mtx.RLock()
 	defer s.mtx.RUnlock()
-	note, exists := s.notes[id]
+	note, exists := s.notes[noteID]
 	if !exists {
 		return nil, model.ErrNotFound
 	}
@@ -76,23 +67,23 @@ func (s *NoteStorage) GetNoteById(ctx context.Context, id uuid.UUID) (*model.Not
 func (s *NoteStorage) UpdateNote(ctx context.Context, note *model.Note) error {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
-	if _, exists := s.notes[note.NoteId]; !exists {
+	if _, exists := s.notes[note.ID]; !exists {
 		return model.ErrNotFound
 	}
-	s.notes[note.NoteId] = *note
+	s.notes[note.ID] = *note
 	return nil
 }
 
-func (s *NoteStorage) DeleteNote(ctx context.Context, id uuid.UUID) error {
+func (s *NoteStorage) DeleteNote(ctx context.Context, noteID uuid.UUID) error {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
-	delete(s.notes, id)
+	delete(s.notes, noteID)
 	return nil
 }
 
-func (s *NoteStorage) NoteExists(ctx context.Context, id uuid.UUID) (bool, error) {
+func (s *NoteStorage) NoteExists(ctx context.Context, noteID uuid.UUID) (bool, error) {
 	s.mtx.RLock()
 	defer s.mtx.RUnlock()
-	_, exists := s.notes[id]
+	_, exists := s.notes[noteID]
 	return exists, nil
 }

@@ -45,7 +45,7 @@ func TestAdd(t *testing.T) {
 				assert.Equal(t, test.note.Body, result.Body)
 			}
 
-			note, ok := storage.notes[test.note.NoteId]
+			note, ok := storage.notes[test.note.ID]
 			if test.errorExpected {
 				assert.False(t, ok)
 				assert.Nil(t, note)
@@ -64,10 +64,11 @@ func TestAdd(t *testing.T) {
 }
 
 // проверка получения заметки
-func TestGetByHeader(t *testing.T) {
+func TestGetNotes(t *testing.T) {
 	notes := []model.Note{
-		{NoteId: uuid.New(), Header: "header1", Body: "some body"},
-		{NoteId: uuid.New(), Header: "header2", Body: "sdsfsdfds"},
+		{ID: uuid.New(), Header: "header1", Body: "some body"},
+		{ID: uuid.New(), Header: "header2", Body: "another body"},
+		{ID: uuid.New(), Header: "header2", Body: "sdsfsdfds"},
 	}
 	// создаем хранилище с заполненными данными
 	storage := NewNoteStorageWithData(notes)
@@ -76,44 +77,44 @@ func TestGetByHeader(t *testing.T) {
 	randomHeader := "header" + uuid.New().String()
 	tests := []struct {
 		name     string
-		header   string
-		expected *model.Note
+		header   *string
+		expected []*model.Note
 	}{
-		{"default get", notes[0].Header, &notes[0]},
-		{"default get 2", notes[1].Header, &notes[1]},
-		{"not found", randomHeader, nil},
+		{"get all notes", nil, []*model.Note{&notes[0], &notes[1], &notes[2]}},
+		{"get by header", &notes[0].Header, []*model.Note{&notes[0]}},
+		{"get by header with multiple notes", &notes[1].Header, []*model.Note{&notes[1], &notes[2]}},
+		{"get by header that doesn't exist", &randomHeader, []*model.Note{}},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			result, err := storage.GetNotesByHeader(context.Background(), test.header)
-			if test.expected == nil {
-				assert.Nil(t, err)
-				assert.NotNil(t, result)
-				contains := slices.ContainsFunc(result, func(e model.Note) bool { return e.Header == test.header })
-				assert.False(t, contains)
-			} else {
-				assert.Nil(t, err)
-				require.NotNil(t, result)
-				require.GreaterOrEqual(t, len(result), 1)
-
-				contains := slices.ContainsFunc(result, func(e model.Note) bool { return e.Header == test.header && e.Body == test.expected.Body })
-				assert.True(t, contains)
+			filters := make(map[string]interface{})
+			if test.header != nil {
+				filters["header"] = *test.header
 			}
+			result, err := storage.GetNotes(context.Background(), filters)
 
+			assert.Nil(t, err)
+			assert.NotNil(t, result)
+			assert.Len(t, result, len(test.expected))
+			// проверяем, что результат содержит все ожидаемые заметки
+			for _, expectedNote := range test.expected {
+				assert.True(t, slices.ContainsFunc(result, func(note model.Note) bool {
+					return note == *expectedNote
+				}))
+			}
 		})
 	}
-
 }
 
 func TestUpdate(t *testing.T) {
 	notes := []model.Note{
-		{NoteId: uuid.New(), Header: "header1", Body: "some body"},
+		{ID: uuid.New(), Header: "header1", Body: "some body"},
 	}
 	storage := NewNoteStorageWithData(notes)
 	log.Println(storage.notes)
 
-	newNote := model.Note{NoteId: notes[0].NoteId, Header: "header1", Body: "new body"}
+	newNote := model.Note{ID: notes[0].ID, Header: "header1", Body: "new body"}
 
 	// обновляем заметку (с тем же заголовком)
 	err := storage.UpdateNote(context.Background(), &newNote)
@@ -121,7 +122,7 @@ func TestUpdate(t *testing.T) {
 	assert.Nil(t, err)
 
 	// заметка должна замениться
-	result, ok := storage.notes[newNote.NoteId]
+	result, ok := storage.notes[newNote.ID]
 	assert.True(t, ok)
 	require.NotNil(t, result)
 	assert.Equal(t, newNote, result)
@@ -129,17 +130,16 @@ func TestUpdate(t *testing.T) {
 
 func TestDelete(t *testing.T) {
 	notes := []model.Note{
-		{NoteId: uuid.New(), Header: "header1", Body: "some body"},
-		{NoteId: uuid.New(), Header: "header2", Body: "sfjdsiofj"},
+		{ID: uuid.New(), Header: "header1", Body: "some body"},
+		{ID: uuid.New(), Header: "header2", Body: "sfjdsiofj"},
 	}
 	storage := NewNoteStorageWithData(notes)
 
-	// обновляем заметку (с тем же заголовком)
-	err := storage.DeleteNote(context.Background(), notes[0].NoteId)
+	err := storage.DeleteNote(context.Background(), notes[0].ID)
 	assert.Nil(t, err)
 
 	// заметка должна остсутствовать
-	_, ok := storage.notes[notes[0].NoteId]
+	_, ok := storage.notes[notes[0].ID]
 	assert.False(t, ok)
 
 	if len(storage.notes) != 1 {

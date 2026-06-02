@@ -32,28 +32,23 @@ func (s *NoteService) AddNote(ctx context.Context, note *model.Note) (*model.Not
 	return created, nil
 }
 
-func (s *NoteService) GetAllNotes(ctx context.Context) ([]model.Note, error) {
-	notes, err := s.storage.GetNotes(ctx)
+func (s *NoteService) GetNotes(ctx context.Context, filters map[string]interface{}) ([]model.Note, error) {
+	notes, err := s.storage.GetNotes(ctx, filters)
+	if header, ok := filters["header"]; ok && header == "" {
+		return nil, fmt.Errorf("header filter can't be empty: %w", model.ErrBadRequest)
+	}
 	if err != nil {
-		return nil, fmt.Errorf("get all notes: %w", err)
+		return nil, fmt.Errorf("get notes with filters %v: %w", filters, err)
 	}
 	return notes, err
 }
 
-func (s *NoteService) GetNoteById(ctx context.Context, noteId uuid.UUID) (*model.Note, error) {
-	note, err := s.storage.GetNoteById(ctx, noteId)
+func (s *NoteService) GetNoteByID(ctx context.Context, noteID uuid.UUID) (*model.Note, error) {
+	note, err := s.storage.GetNoteByID(ctx, noteID)
 	if err != nil {
-		return nil, fmt.Errorf("get note by id: %w", err)
+		return nil, fmt.Errorf("get note by ID: %w", err)
 	}
 	return note, err
-}
-
-func (s *NoteService) GetNotesByHeader(ctx context.Context, header string) ([]model.Note, error) {
-	notes, err := s.storage.GetNotesByHeader(ctx, header)
-	if err != nil {
-		return nil, fmt.Errorf("get notes by header: %w", err)
-	}
-	return notes, err
 }
 
 func (s *NoteService) UpdateNote(ctx context.Context, note *model.Note) error {
@@ -64,6 +59,6 @@ func (s *NoteService) UpdateNote(ctx context.Context, note *model.Note) error {
 	return nil
 }
 
-func (s *NoteService) DeleteNote(ctx context.Context, noteId uuid.UUID) error {
-	return s.storage.DeleteNote(ctx, noteId)
+func (s *NoteService) DeleteNote(ctx context.Context, noteID uuid.UUID) error {
+	return s.storage.DeleteNote(ctx, noteID)
 }

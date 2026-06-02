@@ -1,4 +1,3 @@
-// nolint
 package api_client
 
 import (
@@ -11,6 +10,7 @@ import (
 	"strconv"
 
 	"simple-server/internal/model"
+	"simple-server/internal/util"
 
 	"github.com/google/uuid"
 )
@@ -28,12 +28,12 @@ func NewApiClient(baseUrl string) *ApiClient {
 
 // запрос списка заметок
 func (c *ApiClient) FetchAllNotes() ([]model.Note, error) {
-	fmt.Println("GET /note")
-	resp, err := http.Get(fmt.Sprintf("%s/note", c.baseUrl))
+	fmt.Println("GET /notes")
+	resp, err := http.Get(fmt.Sprintf("%s/notes", c.baseUrl))
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer util.CloseResponseBody(resp)
 	raw, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
@@ -50,39 +50,17 @@ func (c *ApiClient) FetchAllNotes() ([]model.Note, error) {
 	return notesList, nil
 }
 
-// запрос заметки
-func (c *ApiClient) FetchNoteById(id uuid.UUID) (*model.Note, error) {
-	fmt.Println("GET /note/id/" + id.String())
+func (c *ApiClient) FetchNotesByHeader(header string) ([]model.Note, error) {
+	params := url.Values{}
+	params.Add("header", header)
+	path := "/notes?" + params.Encode()
+	fmt.Println("GET " + path)
 
-	resp, err := http.Get(fmt.Sprintf("%s/note/id/%s", c.baseUrl, id.String()))
+	resp, err := http.Get(c.baseUrl + path)
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
-	raw, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-	fmt.Println(resp.Status)
-	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("body: %s", string(raw))
-	}
-
-	var note model.Note
-	if err := json.Unmarshal(raw, &note); err != nil {
-		return nil, err
-	}
-	return &note, nil
-}
-
-func (c *ApiClient) FetchNoteByHeader(header string) ([]model.Note, error) {
-	fmt.Println("GET /note/header/" + header)
-
-	resp, err := http.Get(fmt.Sprintf("%s/note/header/%s", c.baseUrl, header))
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
+	defer util.CloseResponseBody(resp)
 	raw, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
@@ -99,6 +77,31 @@ func (c *ApiClient) FetchNoteByHeader(header string) ([]model.Note, error) {
 	return notes, nil
 }
 
+// запрос заметки
+func (c *ApiClient) FetchNoteByID(ID uuid.UUID) (*model.Note, error) {
+	fmt.Println("GET /note/" + ID.String())
+
+	resp, err := http.Get(fmt.Sprintf("%s/note/%s", c.baseUrl, ID.String()))
+	if err != nil {
+		return nil, err
+	}
+	defer util.CloseResponseBody(resp)
+	raw, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println(resp.Status)
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("body: %s", string(raw))
+	}
+
+	var note model.Note
+	if err := json.Unmarshal(raw, &note); err != nil {
+		return nil, err
+	}
+	return &note, nil
+}
+
 // запрос добавления новой заметки
 func (c *ApiClient) AddNote(note *model.Note) (*model.Note, error) {
 	jsonBody, _ := json.Marshal(note)
@@ -108,7 +111,7 @@ func (c *ApiClient) AddNote(note *model.Note) (*model.Note, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer util.CloseResponseBody(resp)
 	raw, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
@@ -128,9 +131,13 @@ func (c *ApiClient) AddNote(note *model.Note) (*model.Note, error) {
 
 // запрос изменения заметки
 func (c *ApiClient) UpdateNote(note *model.Note) error {
-	jsonBody, _ := json.Marshal(*note)
+	updateNote := model.UpdateNoteRequestBody{
+		Header: note.Header,
+		Body:   note.Body,
+	}
+	jsonBody, _ := json.Marshal(updateNote)
 
-	path := fmt.Sprintf("/note/%s", url.PathEscape(note.NoteId.String()))
+	path := fmt.Sprintf("/note/%s", url.PathEscape(note.ID.String()))
 	fmt.Printf("PUT %s \n%s\n", path, jsonBody)
 	req, _ := http.NewRequest(http.MethodPut, c.baseUrl+path, bytes.NewBuffer(jsonBody))
 	req.Header.Set("Content-Type", "application/json")
@@ -138,7 +145,7 @@ func (c *ApiClient) UpdateNote(note *model.Note) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer util.CloseResponseBody(resp)
 	raw, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return err
@@ -152,9 +159,9 @@ func (c *ApiClient) UpdateNote(note *model.Note) error {
 }
 
 // запрос удаления заметки
-func (c *ApiClient) DeleteNote(id uuid.UUID) error {
-	fmt.Printf("DELETE /note/%s", id.String())
-	req, _ := http.NewRequest(http.MethodDelete, fmt.Sprintf("%s/note/%s", c.baseUrl, id.String()), nil)
+func (c *ApiClient) DeleteNote(ID uuid.UUID) error {
+	fmt.Printf("DELETE /note/%s", ID.String())
+	req, _ := http.NewRequest(http.MethodDelete, fmt.Sprintf("%s/note/%s", c.baseUrl, ID.String()), nil)
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -162,7 +169,7 @@ func (c *ApiClient) DeleteNote(id uuid.UUID) error {
 	}
 	fmt.Println(resp.Status)
 
-	defer resp.Body.Close()
+	defer util.CloseResponseBody(resp)
 	raw, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return err
@@ -194,7 +201,7 @@ func (c *ApiClient) Convert(amount float64, baseCurrency string, targetCurrencie
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer util.CloseResponseBody(resp)
 	raw, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
