@@ -88,9 +88,8 @@ func TestGetNotes(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			filters := make(map[string]interface{})
-			if test.header != nil {
-				filters["header"] = *test.header
+			filters := model.GetNotesFilters{
+				Header: test.header,
 			}
 			result, err := storage.GetNotes(context.Background(), filters)
 

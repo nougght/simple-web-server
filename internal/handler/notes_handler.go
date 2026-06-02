@@ -36,7 +36,7 @@ func (h *NoteHandler) parseNoteFromRequest(r *http.Request) (*model.Note, error)
 }
 
 func (h *NoteHandler) parsePutNoteRequest(r *http.Request) (*model.Note, error) {
-	ID, err := uuid.Parse(r.PathValue("id"))
+	id, err := uuid.Parse(r.PathValue("id"))
 	if err != nil {
 		return nil, fmt.Errorf("invalid note id: %w: %w", err, model.ErrBadRequest)
 	}
@@ -50,7 +50,7 @@ func (h *NoteHandler) parsePutNoteRequest(r *http.Request) (*model.Note, error) 
 		return nil, fmt.Errorf("%w: %w", err, model.ErrBadRequest)
 	}
 	note := &model.Note{
-		ID:     ID,
+		ID:     id,
 		Header: updateNote.Header,
 		Body:   updateNote.Body,
 	}
@@ -83,9 +83,9 @@ func (h *NoteHandler) GetNotes(w http.ResponseWriter, r *http.Request) {
 		notesList []model.Note
 		err       error
 	)
-	filters := make(map[string]interface{})
-	if header := r.URL.Query().Get("header"); header != "" {
-		filters["header"] = header
+	filters := model.GetNotesFilters{}
+	if header := r.URL.Query().Get(string(model.NoteFilterHeader)); header != "" {
+		filters.Header = &header
 	}
 	notesList, err = h.service.GetNotes(r.Context(), filters)
 	if err != nil {
@@ -100,13 +100,13 @@ func (h *NoteHandler) GetNotes(w http.ResponseWriter, r *http.Request) {
 func (h *NoteHandler) GetNoteByID(w http.ResponseWriter, r *http.Request) {
 	log.Printf("%s %s", r.Method, r.URL)
 
-	ID, err := uuid.Parse(r.PathValue("id"))
+	id, err := uuid.Parse(r.PathValue("id"))
 	if err != nil {
 		handleError(w, fmt.Errorf("invalid note ID: %w: %w", err, model.ErrBadRequest))
 		return
 	}
 
-	note, err := h.service.GetNoteByID(r.Context(), ID)
+	note, err := h.service.GetNoteByID(r.Context(), id)
 	if err != nil {
 		handleError(w, err)
 		return
@@ -124,6 +124,7 @@ func (h *NoteHandler) PutNote(w http.ResponseWriter, r *http.Request) {
 		handleError(w, err)
 		return
 	}
+
 	// если все ок - обновляем заметку
 	if err := h.service.UpdateNote(r.Context(), note); err != nil {
 		handleError(w, err)
@@ -136,13 +137,13 @@ func (h *NoteHandler) PutNote(w http.ResponseWriter, r *http.Request) {
 // удаление заметки
 func (h *NoteHandler) DeleteNote(w http.ResponseWriter, r *http.Request) {
 	log.Printf("%s %s", r.Method, r.URL)
-	ID, err := uuid.Parse(r.PathValue("id"))
+	id, err := uuid.Parse(r.PathValue("id"))
 	if err != nil {
 		handleError(w, fmt.Errorf("invalid note ID: %w: %w", err, model.ErrBadRequest))
 		return
 	}
 
-	if err := h.service.DeleteNote(r.Context(), ID); err != nil {
+	if err := h.service.DeleteNote(r.Context(), id); err != nil {
 		handleError(w, err)
 		return
 	}
