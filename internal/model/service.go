@@ -12,7 +12,7 @@ type CurrencyService interface {
 
 type NoteService interface {
 	AddNote(ctx context.Context, note *Note) (*Note, error)
-	GetNotes(ctx context.Context, filters map[string]interface{}) ([]Note, error)
+	GetNotes(ctx context.Context, filters GetNotesFilters) ([]Note, error)
 	GetNoteByID(ctx context.Context, noteID uuid.UUID) (*Note, error)
 	UpdateNote(ctx context.Context, note *Note) error
 	DeleteNote(ctx context.Context, noteID uuid.UUID) error

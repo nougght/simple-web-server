@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"simple-server/internal/config"
 	"simple-server/internal/model"
+	"strings"
 
 	"github.com/google/uuid"
 )
@@ -21,9 +22,16 @@ func NewNoteService(config *config.Config, storage NoteStorage) *NoteService {
 	}
 }
 
+func (s *NoteService) validateHeader(header string) error {
+	if strings.TrimSpace(header) == "" {
+		return fmt.Errorf("header can't be empty: %w", model.ErrBadRequest)
+	}
+	return nil
+}
+
 func (s *NoteService) AddNote(ctx context.Context, note *model.Note) (*model.Note, error) {
-	if note.Header == "" {
-		return nil, fmt.Errorf("header can't be empty: %w", model.ErrBadRequest)
+	if err := s.validateHeader(note.Header); err != nil {
+		return nil, err
 	}
 	created, err := s.storage.AddNote(ctx, note)
 	if err != nil {
@@ -32,11 +40,13 @@ func (s *NoteService) AddNote(ctx context.Context, note *model.Note) (*model.Not
 	return created, nil
 }
 
-func (s *NoteService) GetNotes(ctx context.Context, filters map[string]interface{}) ([]model.Note, error) {
-	notes, err := s.storage.GetNotes(ctx, filters)
-	if header, ok := filters["header"]; ok && header == "" {
-		return nil, fmt.Errorf("header filter can't be empty: %w", model.ErrBadRequest)
+func (s *NoteService) GetNotes(ctx context.Context, filters model.GetNotesFilters) ([]model.Note, error) {
+	if filters.Header != nil {
+		if err := s.validateHeader(*filters.Header); err != nil {
+			return nil, err
+		}
 	}
+	notes, err := s.storage.GetNotes(ctx, filters)
 	if err != nil {
 		return nil, fmt.Errorf("get notes with filters %v: %w", filters, err)
 	}
@@ -52,6 +62,9 @@ func (s *NoteService) GetNoteByID(ctx context.Context, noteID uuid.UUID) (*model
 }
 
 func (s *NoteService) UpdateNote(ctx context.Context, note *model.Note) error {
+	if err := s.validateHeader(note.Header); err != nil {
+		return err
+	}
 	err := s.storage.UpdateNote(ctx, note)
 	if err != nil {
 		return fmt.Errorf("update note: %w", err)

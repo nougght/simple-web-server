@@ -9,7 +9,7 @@ import (
 
 type NoteStorage interface {
 	AddNote(ctx context.Context, note *model.Note) (*model.Note, error)
-	GetNotes(ctx context.Context, filters map[string]interface{}) ([]model.Note, error)
+	GetNotes(ctx context.Context, filters model.GetNotesFilters) ([]model.Note, error)
 	GetNoteByID(ctx context.Context, noteID uuid.UUID) (*model.Note, error)
 	UpdateNote(ctx context.Context, note *model.Note) error
 	DeleteNote(ctx context.Context, noteID uuid.UUID) error

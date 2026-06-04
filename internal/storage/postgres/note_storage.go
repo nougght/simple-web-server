@@ -74,25 +74,30 @@ func NewNoteStorage(cfg *config.PostgresConfig) (*NoteStorage, error) {
 }
 
 // список заметок с фильтрами
-func (s *NoteStorage) GetNotes(ctx context.Context, filters map[string]interface{}) ([]model.Note, error) {
+func (s *NoteStorage) GetNotes(ctx context.Context, filters model.GetNotesFilters) ([]model.Note, error) {
 	notes := []model.Note{}
 	query := "SELECT * FROM notes WHERE 1=1"
 
+	c := 0
+	args := make([]interface{}, 0)
 	// добавляем фильтры если они есть
-	for key, value := range filters {
-		query += fmt.Sprintf(" AND %s = '%v'", key, value)
+	if filters.Header != nil {
+		c++
+		query += fmt.Sprintf(" AND header = $%d", c)
+		args = append(args, *filters.Header)
 	}
-	if err := s.db.SelectContext(ctx, &notes, query); err != nil {
+
+	if err := s.db.SelectContext(ctx, &notes, query, args...); err != nil {
 		return nil, fmt.Errorf("select failed: %w", err)
 	}
 	return notes, nil
 }
 
 // получение заметки по ID
-func (s *NoteStorage) GetNoteByID(ctx context.Context, ID uuid.UUID) (*model.Note, error) {
+func (s *NoteStorage) GetNoteByID(ctx context.Context, id uuid.UUID) (*model.Note, error) {
 	var note model.Note
 	query := "SELECT * FROM notes WHERE notes.id = $1"
-	if err := s.db.GetContext(ctx, &note, query, ID); err != nil {
+	if err := s.db.GetContext(ctx, &note, query, id); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, model.ErrNotFound
 		}

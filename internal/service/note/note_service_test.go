@@ -58,16 +58,17 @@ func TestGetNotes(t *testing.T) {
 	})
 	service := NewNoteService(cfg, storage)
 
+	headers := []string{"header1", "header3843", " "}
 	tests := []struct {
 		name          string
-		filters       map[string]interface{}
+		filters       model.GetNotesFilters
 		expectedCount int
 		errorExpected bool
 	}{
-		{"no filters", nil, 2, false},
-		{"filter by header", map[string]interface{}{"header": "header1"}, 1, false},
-		{"filter by header that doesn't exist", map[string]interface{}{"header": "header3843"}, 0, false},
-		{"filter by empty header", map[string]interface{}{"header": ""}, 0, true},
+		{"no filters", model.GetNotesFilters{}, 2, false},
+		{"filter by header", model.GetNotesFilters{Header: &headers[0]}, 1, false},
+		{"filter by header that doesn't exist", model.GetNotesFilters{Header: &headers[1]}, 0, false},
+		{"filter by empty header", model.GetNotesFilters{Header: &headers[2]}, 0, true},
 	}
 
 	for _, test := range tests {
