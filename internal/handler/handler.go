@@ -1,16 +1,16 @@
 package handler
 
 import (
-	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
 	"net/http"
 	"simple-server/internal/model"
+	"simple-server/internal/util"
 )
 
 type Handler struct {
 	NoteHandler     *NoteHandler
+	TaskHandler     *TaskHandler
 	CurrencyHandler *CurrencyHandler
 }
 
@@ -29,11 +29,16 @@ func (h *Handler) registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("PUT /note/{id}", h.NoteHandler.PutNote)
 	// удаление
 	mux.HandleFunc("DELETE /note/{id}", h.NoteHandler.DeleteNote)
+
+	mux.HandleFunc("GET /task/{id}/status", h.TaskHandler.GetTaskStatus)
+	mux.HandleFunc("GET /task/{id}", h.TaskHandler.GetTask)
+	mux.HandleFunc("DELETE /task/{id}", h.TaskHandler.DeleteTask)
 }
 
 func GetHandlers(services model.Service) (*http.ServeMux, *Handler) {
 	handler := Handler{
 		NoteHandler:     NewNoteHandler(services.NoteService()),
+		TaskHandler:     NewTaskHandler(services.TaskService()),
 		CurrencyHandler: NewCurrencyHandler(services.CurrencyService()),
 	}
 
@@ -58,9 +63,9 @@ func handleError(w http.ResponseWriter, err error) {
 // отправка JSON ответа с передачей статуса и тела(может быть nil)
 func writeJSON(w http.ResponseWriter, status int, body any) {
 	if body != nil {
-		jsonResponse, err := json.Marshal(body)
+		jsonResponse, err := util.EncodeJson(body)
 		if err != nil {
-			handleError(w, fmt.Errorf("json encoding error: %w", err))
+			handleError(w, err)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")

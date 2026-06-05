@@ -1,6 +1,7 @@
 package currency
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"log"
@@ -9,38 +10,48 @@ import (
 	"simple-server/internal/config"
 	"simple-server/internal/model"
 	"simple-server/internal/util"
+
+	"github.com/google/uuid"
 )
 
 type CurrencyService struct {
 	currencyRatesBaseUrl string
 	apiKey               string
+	taskService          model.TaskService
 }
 
-func NewCurrencyService(config *config.Config) *CurrencyService {
+func NewCurrencyService(config *config.Config, taskService model.TaskService) *CurrencyService {
 	return &CurrencyService{
 		currencyRatesBaseUrl: config.FreecurrencyApiUrl,
 		apiKey:               config.FreecurrencyApiKey,
+		taskService:          taskService,
 	}
 }
 
 // запрос курса валют через внешний api
-func (s *CurrencyService) requestCurrencyRates(baseCurrency string, targetCurrencies []string) (map[string]float64, error) {
+func (s *CurrencyService) requestCurrencyRates(ctx context.Context, baseCurrency string, targetCurrencies []string) (map[string]float64, error) {
 	params := url.Values{}
 	params.Add("apikey", s.apiKey)
 	params.Add("base_currency", baseCurrency)
 	params.Add("currencies", util.SliceToCommaString(targetCurrencies))
 
-	// добавляем параметры к url и отправляем запрос
-	resp, err := http.Get(fmt.Sprintf("%s?%s", s.currencyRatesBaseUrl, params.Encode()))
+	// добавляем параметры к url
+	url := fmt.Sprintf("%s?%s", s.currencyRatesBaseUrl, params.Encode())
+
+	// создаем запрос с контекстом
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create request with context: %w", err)
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
 
 	defer util.CloseResponseBody(resp)
-
 	raw, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
 	log.Println("Получены курсы валют: " + string(raw))
 
@@ -48,14 +59,13 @@ func (s *CurrencyService) requestCurrencyRates(baseCurrency string, targetCurren
 	if err := util.DecodeJson(raw, &respBody); err != nil {
 		return nil, err
 	}
-
 	return respBody.Data, nil
 }
 
 // конвертация валют
-func (s *CurrencyService) ConvertCurrency(params *model.ConvertCurrencyParams) (map[string]float64, error) {
+func (s *CurrencyService) ConvertCurrency(ctx context.Context, params *model.ConvertCurrencyParams) (map[string]float64, error) {
 	// запрашиваем актуальный курс
-	rates, err := s.requestCurrencyRates(params.BaseCurrency, params.TargetCurrencies)
+	rates, err := s.requestCurrencyRates(ctx, params.BaseCurrency, params.TargetCurrencies)
 	if err != nil {
 		return nil, fmt.Errorf("currency rates request error: %w", err)
 	}
@@ -64,4 +74,15 @@ func (s *CurrencyService) ConvertCurrency(params *model.ConvertCurrencyParams) (
 		rates[currency] *= params.Amount
 	}
 	return rates, nil
+}
+
+func (s *CurrencyService) ConvertAndSaveAsync(ctx context.Context, params *model.ConvertCurrencyParams) (uuid.UUID, error) {
+	id, err := s.taskService.ExecuteAndSaveAsync(ctx,
+		func(ctx context.Context) (any, error) {
+			return s.ConvertCurrency(ctx, params)
+		})
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("failed to run async task: %w", err)
+	}
+	return id, nil
 }
