@@ -20,6 +20,14 @@ func DecodeJson(rawData []byte, obj any) error {
 	return nil
 }
 
+func EncodeJson(obj any) ([]byte, error) {
+	data, err := json.Marshal(obj)
+	if err != nil {
+		return nil, fmt.Errorf("json encoding error: %s", err.Error())
+	}
+	return data, nil
+}
+
 // закрытие тела ответа с обработкой ошибки
 func CloseResponseBody(resp *http.Response) {
 	if err := resp.Body.Close(); err != nil {
