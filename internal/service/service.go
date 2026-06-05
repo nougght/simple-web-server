@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"simple-server/internal/config"
@@ -10,6 +11,7 @@ import (
 	"simple-server/internal/service/task"
 	"simple-server/internal/storage/memory"
 	"simple-server/internal/storage/postgres"
+	"sync"
 )
 
 type Service struct {
@@ -18,7 +20,7 @@ type Service struct {
 	taskService     model.TaskService
 }
 
-func GetServices(config *config.Config) (*Service, error) {
+func GetServices(config *config.Config, rootCtx context.Context, wg *sync.WaitGroup) (*Service, error) {
 	// общее подключение к БД
 	db, err := postgres.ConnectDB(config.Postgres)
 	if err != nil {
@@ -38,7 +40,7 @@ func GetServices(config *config.Config) (*Service, error) {
 	log.Printf("%s note storage initialized", config.StorageType)
 
 	taskStorage := postgres.NewTaskStorage(db)
-	taskService := task.NewTaskService(config, taskStorage)
+	taskService := task.NewTaskService(config, taskStorage, rootCtx, wg)
 
 	return &Service{
 		noteService:     note.NewNoteService(config, noteStorage),

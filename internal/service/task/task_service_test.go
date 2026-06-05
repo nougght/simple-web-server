@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"simple-server/internal/model"
+	"sync"
 	"testing"
 	"time"
 
@@ -37,7 +38,7 @@ func (m *MockTaskStorage) DeleteTask(ctx context.Context, id uuid.UUID) error {
 }
 
 func TestExecuteAndSave(t *testing.T) {
-
+	timeout := 3 * time.Second
 	tests := []struct {
 		name          string
 		task          model.Task
@@ -55,7 +56,7 @@ func TestExecuteAndSave(t *testing.T) {
 				select {
 				case <-ctx.Done():
 					return nil, ctx.Err()
-				case <-time.After(10 * time.Second):
+				case <-time.After(timeout + time.Second):
 				}
 				return "some result", nil
 			},
@@ -72,7 +73,7 @@ func TestExecuteAndSave(t *testing.T) {
 				select {
 				case <-ctx.Done():
 					return nil, ctx.Err()
-				case <-time.After(time.Second):
+				case <-time.After(timeout / 2):
 				}
 				return "default result", nil
 			},
@@ -100,11 +101,14 @@ func TestExecuteAndSave(t *testing.T) {
 			updatedTasks[task.ID] = task
 			return nil
 		},
-	})
+	}, context.Background(), &sync.WaitGroup{})
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			service.executeAndSaveTask(context.Background(), &test.task, test.taskFunc)
+			taskCtx, cancel := context.WithTimeout(context.Background(), timeout)
+			defer cancel()
+
+			service.executeAndSaveTask(taskCtx, &test.task, test.taskFunc)
 			savedTask := updatedTasks[test.task.ID]
 			assert.NotNil(t, savedTask.FinishedAt)
 			if test.errorExpected {

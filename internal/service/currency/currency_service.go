@@ -78,8 +78,8 @@ func (s *CurrencyService) ConvertCurrency(ctx context.Context, params *model.Con
 
 func (s *CurrencyService) ConvertAndSaveAsync(ctx context.Context, params *model.ConvertCurrencyParams) (uuid.UUID, error) {
 	id, err := s.taskService.ExecuteAndSaveAsync(ctx,
-		func(ctx context.Context) (any, error) {
-			return s.ConvertCurrency(ctx, params)
+		func(taskCtx context.Context) (any, error) {
+			return s.ConvertCurrency(taskCtx, params)
 		})
 	if err != nil {
 		return uuid.Nil, fmt.Errorf("failed to run async task: %w", err)

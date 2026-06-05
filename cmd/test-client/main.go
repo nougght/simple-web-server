@@ -111,12 +111,13 @@ func main() {
 		status, err = api.FetchTaskStatus(taskID)
 		if err != nil {
 			fmt.Printf("Ошибка: %s\n", err.Error())
-		} else {
-			log.Printf("Статус задачи: %s\n", *status)
-			if *status != model.TaskStatusInProgress {
-				break
-			}
+			break
 		}
+		log.Printf("Статус задачи: %s\n", *status)
+		if *status != model.TaskStatusInProgress {
+			break
+		}
+
 		time.Sleep(time.Second)
 	}
 	if status != nil && *status != model.TaskStatusInProgress {

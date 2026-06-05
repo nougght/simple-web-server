@@ -14,6 +14,7 @@ const (
 	TaskStatusInProgress TaskStatus = "in_progress"
 	TaskStatusSuccess    TaskStatus = "success"
 	TaskStatusFailed     TaskStatus = "failed"
+	TaskStatusCancelled  TaskStatus = "cancelled"
 )
 
 // асинхронная задача
@@ -26,6 +27,7 @@ type Task struct {
 	FinishedAt *time.Time       `json:"finished_at,omitempty" db:"finished_at"`
 }
 
+// методы для заполнения необязательных полей с указателями
 func (t *Task) SetError(err string) {
 	t.Error = &err
 }
