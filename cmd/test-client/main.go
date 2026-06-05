@@ -6,6 +6,7 @@ import (
 	"simple-server/internal/model"
 	"simple-server/internal/test-client/api_client"
 	"slices"
+	"time"
 )
 
 // проверка работы сервера
@@ -97,9 +98,47 @@ func main() {
 	}
 
 	log.Println("Конвертация валют")
-	if res, err := api.Convert(2000, "RUB", []string{"EUR", "USD", "CNY", "JPY"}); err != nil {
+	taskID, err := api.Convert(2000, "RUB", []string{"EUR", "USD", "CNY", "JPY"})
+	if err != nil {
 		fmt.Printf("Ошибка: %s\n", err.Error())
 	} else {
-		fmt.Println(res)
+		fmt.Println(taskID)
 	}
+
+	var status *model.TaskStatus
+	// проверка статуса задачи с интервалом
+	for i := 0; i < 10; i++ {
+		status, err = api.FetchTaskStatus(taskID)
+		if err != nil {
+			fmt.Printf("Ошибка: %s\n", err.Error())
+		} else {
+			log.Printf("Статус задачи: %s\n", *status)
+			if *status != model.TaskStatusInProgress {
+				break
+			}
+		}
+		time.Sleep(time.Second)
+	}
+	if status != nil && *status != model.TaskStatusInProgress {
+		task, err := api.FetchTask(taskID)
+		if err != nil {
+			fmt.Printf("Ошибка: %s\n", err.Error())
+		} else {
+			fmt.Printf("Задача: %v\n", task)
+			switch task.Status {
+			case model.TaskStatusSuccess:
+				fmt.Printf("Результат: %v\n", string(*task.Result))
+			case model.TaskStatusFailed:
+				fmt.Printf("Ошибка: %s\n", *task.Error)
+			}
+		}
+
+		err = api.DeleteTask(taskID)
+		if err != nil {
+			fmt.Printf("Ошибка: %s\n", err.Error())
+		} else {
+			fmt.Printf("Задача %s удалена\n", taskID)
+		}
+	}
+
 }

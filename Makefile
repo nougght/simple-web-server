@@ -41,3 +41,7 @@ ifeq (${STORAGE_TYPE},postgres)
 else
 	echo memory storage
 endif
+
+
+run-test-client:
+	go run ./cmd/test-client/main.go
