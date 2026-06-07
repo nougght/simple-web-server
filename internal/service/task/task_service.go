@@ -22,7 +22,7 @@ type TaskService struct {
 
 // создает TaskService и отслеживает отмену rootCtx
 // при отмене rootCtx задачи сохраняется в БД со статусом cancelled, новые задачи не принимаются
-// клиент чаще всего не будет успевать получить результат отмененной задачи
+// клиент чаще всего не будет успевать получить статус отмененной задачи
 func NewTaskService(cfg *config.Config, storage TaskStorage, rootCtx context.Context, wg *sync.WaitGroup) *TaskService {
 	cancelChan := make(chan struct{})
 
@@ -35,7 +35,7 @@ func NewTaskService(cfg *config.Config, storage TaskStorage, rootCtx context.Con
 	return &TaskService{config: cfg, storage: storage, cancelChan: cancelChan, wg: wg}
 }
 
-func (s *TaskService) CreateTask(ctx context.Context, task *model.Task) (*model.Task, error) {
+func (s *TaskService) createTask(ctx context.Context, task *model.Task) (*model.Task, error) {
 	task, err := s.storage.CreateTask(ctx, task)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create task: %w", err)
@@ -135,7 +135,7 @@ func (s *TaskService) ExecuteAndSaveAsync(ctx context.Context, taskFunc func(con
 
 	task := &model.Task{Status: model.TaskStatusInProgress}
 	var err error
-	task, err = s.CreateTask(ctx, task)
+	task, err = s.createTask(ctx, task)
 	if err != nil {
 		return uuid.Nil, fmt.Errorf("failed to create task: %w", err)
 	}

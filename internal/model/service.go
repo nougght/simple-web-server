@@ -20,7 +20,6 @@ type NoteService interface {
 }
 
 type TaskService interface {
-	CreateTask(ctx context.Context, task *Task) (*Task, error)
 	GetTaskStatus(ctx context.Context, id uuid.UUID) (*TaskStatus, error)
 	GetTaskByID(ctx context.Context, id uuid.UUID) (*Task, error)
 	DeleteTask(ctx context.Context, id uuid.UUID) error

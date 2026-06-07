@@ -12,6 +12,7 @@ import (
 	"simple-server/internal/util"
 
 	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
 )
 
 type CurrencyService struct {
@@ -62,6 +63,16 @@ func (s *CurrencyService) requestCurrencyRates(ctx context.Context, baseCurrency
 	return respBody.Data, nil
 }
 
+// конвертация с известными курсами
+func (s *CurrencyService) convertCurrencyWithRates(amount float64, rates map[string]float64) map[string]float64 {
+	amountDecimal := decimal.NewFromFloat(amount)
+	result := make(map[string]float64)
+	for currency, rate := range rates {
+		result[currency] = amountDecimal.Mul(decimal.NewFromFloat(rate)).InexactFloat64()
+	}
+	return result
+}
+
 // конвертация валют
 func (s *CurrencyService) ConvertCurrency(ctx context.Context, params *model.ConvertCurrencyParams) (map[string]float64, error) {
 	// запрашиваем актуальный курс
@@ -69,11 +80,7 @@ func (s *CurrencyService) ConvertCurrency(ctx context.Context, params *model.Con
 	if err != nil {
 		return nil, fmt.Errorf("currency rates request error: %w", err)
 	}
-	// перемножаем курс на сумму для конвертации
-	for currency := range rates {
-		rates[currency] *= params.Amount
-	}
-	return rates, nil
+	return s.convertCurrencyWithRates(params.Amount, rates), nil
 }
 
 func (s *CurrencyService) ConvertAndSaveAsync(ctx context.Context, params *model.ConvertCurrencyParams) (uuid.UUID, error) {
