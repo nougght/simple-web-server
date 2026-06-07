@@ -94,22 +94,25 @@ func TestExecuteAndSave(t *testing.T) {
 		},
 	}
 
-	updatedTasks := make(map[uuid.UUID]*model.Task)
+	updatedTasks := sync.Map{}
 	service := NewTaskService(nil, &MockTaskStorage{
 		// сохраняем обновленные задачи для проверки
 		UpdateTaskFunc: func(ctx context.Context, task *model.Task) error {
-			updatedTasks[task.ID] = task
+			updatedTasks.Store(task.ID, task)
 			return nil
 		},
-	}, context.Background(), &sync.WaitGroup{})
+	}, context.Background(), nil)
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
 			taskCtx, cancel := context.WithTimeout(context.Background(), timeout)
 			defer cancel()
 
 			service.executeAndSaveTask(taskCtx, &test.task, test.taskFunc)
-			savedTask := updatedTasks[test.task.ID]
+			saved, ok := updatedTasks.Load(test.task.ID)
+			require.True(t, ok)
+			savedTask := saved.(*model.Task)
 			assert.NotNil(t, savedTask.FinishedAt)
 			if test.errorExpected {
 				assert.Equal(t, model.TaskStatusFailed, savedTask.Status)
