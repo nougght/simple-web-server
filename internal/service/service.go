@@ -28,7 +28,7 @@ func GetServices(config *config.Config, rootCtx context.Context, wg *sync.WaitGr
 	}
 
 	var noteStorage note.NoteStorage
-	if config.StorageType == model.StorageTypePostgres {
+	if config.NoteStorageType == model.StorageTypePostgres {
 		var err error
 		noteStorage, err = postgres.NewNoteStorage(db)
 		if err != nil {
@@ -37,7 +37,7 @@ func GetServices(config *config.Config, rootCtx context.Context, wg *sync.WaitGr
 	} else {
 		noteStorage = memory.NewNoteStorage()
 	}
-	log.Printf("%s note storage initialized", config.StorageType)
+	log.Printf("%s note storage initialized", config.NoteStorageType)
 
 	taskStorage := postgres.NewTaskStorage(db)
 	taskService := task.NewTaskService(config, taskStorage, rootCtx, wg)

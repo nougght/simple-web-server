@@ -13,7 +13,7 @@ import (
 )
 
 var cfg = &config.Config{
-	StorageType: model.StorageTypeMemory,
+	NoteStorageType: model.StorageTypeMemory,
 }
 
 func TestAddNote(t *testing.T) {
