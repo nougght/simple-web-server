@@ -24,8 +24,12 @@ func main() {
 	rootCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
+	httpClient := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+
 	wg := &sync.WaitGroup{}
-	services, err := service.GetServices(config, wg)
+	services, err := service.GetServices(config, httpClient, wg)
 	if err != nil {
 		log.Panicf("Ошибка при инициализации сервисов: %s", err.Error())
 	}

@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 	"log"
+	"net/http"
 	"simple-server/internal/config"
 	"simple-server/internal/model"
 	"simple-server/internal/service/currency"
@@ -19,7 +20,7 @@ type Service struct {
 	taskService     model.TaskService
 }
 
-func GetServices(config *config.Config, wg *sync.WaitGroup) (*Service, error) {
+func GetServices(config *config.Config, httpClient *http.Client, wg *sync.WaitGroup) (*Service, error) {
 	// общее подключение к БД
 	db, err := postgres.ConnectDB(config.Postgres)
 	if err != nil {
@@ -43,7 +44,7 @@ func GetServices(config *config.Config, wg *sync.WaitGroup) (*Service, error) {
 
 	return &Service{
 		noteService:     note.NewNoteService(config, noteStorage),
-		currencyService: currency.NewCurrencyService(config, taskService),
+		currencyService: currency.NewCurrencyService(config, httpClient, taskService),
 		taskService:     taskService,
 	}, nil
 }

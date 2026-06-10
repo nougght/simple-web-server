@@ -146,7 +146,7 @@ func (s *TaskService) ExecuteAndSaveAsync(ctx context.Context, rootCtx context.C
 		defer s.wg.Done()
 
 		// контекст с таймаутом для задачи на основе rootCtx
-		taskCtx, cancel := context.WithTimeout(rootCtx, 7*time.Second)
+		taskCtx, cancel := context.WithTimeout(rootCtx, model.TaskTimeout)
 		defer cancel()
 
 		s.executeAndSaveTask(taskCtx, task, taskFunc)

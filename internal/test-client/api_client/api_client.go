@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"time"
 
 	"simple-server/internal/model"
 	"simple-server/internal/util"
@@ -16,12 +17,16 @@ import (
 )
 
 type ApiClient struct {
-	baseUrl string
+	baseUrl    string
+	httpClient *http.Client
 }
 
 func NewApiClient(baseUrl string) *ApiClient {
 	return &ApiClient{
 		baseUrl: baseUrl,
+		httpClient: &http.Client{
+			Timeout: 10 * time.Second,
+		},
 	}
 
 }
@@ -29,7 +34,7 @@ func NewApiClient(baseUrl string) *ApiClient {
 // запрос списка заметок
 func (c *ApiClient) FetchAllNotes() ([]model.Note, error) {
 	fmt.Println("GET /notes")
-	resp, err := http.Get(fmt.Sprintf("%s/notes", c.baseUrl))
+	resp, err := c.httpClient.Get(fmt.Sprintf("%s/notes", c.baseUrl))
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +61,7 @@ func (c *ApiClient) FetchNotesByHeader(header string) ([]model.Note, error) {
 	path := "/notes?" + params.Encode()
 	fmt.Println("GET " + path)
 
-	resp, err := http.Get(c.baseUrl + path)
+	resp, err := c.httpClient.Get(c.baseUrl + path)
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +86,7 @@ func (c *ApiClient) FetchNotesByHeader(header string) ([]model.Note, error) {
 func (c *ApiClient) FetchNoteByID(ID uuid.UUID) (*model.Note, error) {
 	fmt.Println("GET /note/" + ID.String())
 
-	resp, err := http.Get(fmt.Sprintf("%s/note/%s", c.baseUrl, ID.String()))
+	resp, err := c.httpClient.Get(fmt.Sprintf("%s/note/%s", c.baseUrl, ID.String()))
 	if err != nil {
 		return nil, err
 	}
@@ -107,7 +112,7 @@ func (c *ApiClient) AddNote(note *model.Note) (*model.Note, error) {
 	jsonBody, _ := json.Marshal(note)
 
 	fmt.Printf("POST /note \n%s", jsonBody)
-	resp, err := http.Post(fmt.Sprintf("%s/note", c.baseUrl), "application/json", bytes.NewBuffer(jsonBody))
+	resp, err := c.httpClient.Post(fmt.Sprintf("%s/note", c.baseUrl), "application/json", bytes.NewBuffer(jsonBody))
 	if err != nil {
 		return nil, err
 	}
@@ -141,7 +146,7 @@ func (c *ApiClient) UpdateNote(note *model.Note) error {
 	fmt.Printf("PUT %s \n%s\n", path, jsonBody)
 	req, _ := http.NewRequest(http.MethodPut, c.baseUrl+path, bytes.NewBuffer(jsonBody))
 	req.Header.Set("Content-Type", "application/json")
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return err
 	}
@@ -163,7 +168,7 @@ func (c *ApiClient) DeleteNote(ID uuid.UUID) error {
 	fmt.Printf("DELETE /note/%s", ID.String())
 	req, _ := http.NewRequest(http.MethodDelete, fmt.Sprintf("%s/note/%s", c.baseUrl, ID.String()), nil)
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return err
 	}
@@ -197,7 +202,7 @@ func (c *ApiClient) Convert(amount float64, baseCurrency string, targetCurrencie
 	}
 	path := "/currency?" + params.Encode()
 	fmt.Printf("GET %s\n", path)
-	resp, err := http.Get(c.baseUrl + path)
+	resp, err := c.httpClient.Get(c.baseUrl + path)
 	if err != nil {
 		return uuid.Nil, err
 	}
@@ -220,7 +225,7 @@ func (c *ApiClient) Convert(amount float64, baseCurrency string, targetCurrencie
 
 func (c *ApiClient) FetchTaskStatus(taskID uuid.UUID) (*model.TaskStatus, error) {
 	fmt.Printf("GET /task/%s/status\n", taskID.String())
-	resp, err := http.Get(fmt.Sprintf("%s/task/%s/status", c.baseUrl, taskID.String()))
+	resp, err := c.httpClient.Get(fmt.Sprintf("%s/task/%s/status", c.baseUrl, taskID.String()))
 	if err != nil {
 		return nil, err
 	}
@@ -242,7 +247,7 @@ func (c *ApiClient) FetchTaskStatus(taskID uuid.UUID) (*model.TaskStatus, error)
 
 func (c *ApiClient) FetchTask(taskID uuid.UUID) (*model.Task, error) {
 	fmt.Printf("GET /task/%s\n", taskID.String())
-	resp, err := http.Get(fmt.Sprintf("%s/task/%s", c.baseUrl, taskID.String()))
+	resp, err := c.httpClient.Get(fmt.Sprintf("%s/task/%s", c.baseUrl, taskID.String()))
 	if err != nil {
 		return nil, err
 	}
@@ -265,7 +270,7 @@ func (c *ApiClient) FetchTask(taskID uuid.UUID) (*model.Task, error) {
 func (c *ApiClient) DeleteTask(taskID uuid.UUID) error {
 	fmt.Printf("DELETE /task/%s\n", taskID.String())
 	req, _ := http.NewRequest(http.MethodDelete, fmt.Sprintf("%s/task/%s", c.baseUrl, taskID.String()), nil)
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return err
 	}

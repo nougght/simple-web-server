@@ -18,13 +18,15 @@ import (
 type CurrencyService struct {
 	currencyRatesBaseUrl string
 	apiKey               string
+	httpClient           *http.Client
 	taskService          model.TaskService
 }
 
-func NewCurrencyService(config *config.Config, taskService model.TaskService) *CurrencyService {
+func NewCurrencyService(config *config.Config, client *http.Client, taskService model.TaskService) *CurrencyService {
 	return &CurrencyService{
 		currencyRatesBaseUrl: config.FreecurrencyApiUrl,
 		apiKey:               config.FreecurrencyApiKey,
+		httpClient:           client,
 		taskService:          taskService,
 	}
 }
@@ -44,7 +46,7 @@ func (s *CurrencyService) requestCurrencyRates(ctx context.Context, baseCurrency
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request with context: %w", err)
 	}
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := s.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
