@@ -55,7 +55,6 @@ func (s *CurrencyService) requestCurrencyRates(ctx context.Context, baseCurrency
 		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
 	log.Println("Получены курсы валют: " + string(raw))
-
 	var respBody model.CurrencyRatesResponse
 	if err := util.DecodeJson(raw, &respBody); err != nil {
 		return nil, err
@@ -83,8 +82,8 @@ func (s *CurrencyService) ConvertCurrency(ctx context.Context, params *model.Con
 	return s.convertCurrencyWithRates(params.Amount, rates), nil
 }
 
-func (s *CurrencyService) ConvertAndSaveAsync(ctx context.Context, params *model.ConvertCurrencyParams) (uuid.UUID, error) {
-	id, err := s.taskService.ExecuteAndSaveAsync(ctx,
+func (s *CurrencyService) ConvertAndSaveAsync(ctx context.Context, rootCtx context.Context, params *model.ConvertCurrencyParams) (uuid.UUID, error) {
+	id, err := s.taskService.ExecuteAndSaveAsync(ctx, rootCtx,
 		func(taskCtx context.Context) (any, error) {
 			return s.ConvertCurrency(taskCtx, params)
 		})

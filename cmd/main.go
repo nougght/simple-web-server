@@ -25,11 +25,11 @@ func main() {
 	defer stop()
 
 	wg := &sync.WaitGroup{}
-	services, err := service.GetServices(config, rootCtx, wg)
+	services, err := service.GetServices(config, wg)
 	if err != nil {
 		log.Panicf("Ошибка при инициализации сервисов: %s", err.Error())
 	}
-	mux, _ := handler.GetHandlers(services)
+	mux, _ := handler.GetHandlers(services, rootCtx)
 
 	server := &http.Server{
 		Addr:    ":8085",

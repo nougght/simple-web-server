@@ -40,11 +40,13 @@ func (m *MockTaskStorage) DeleteTask(ctx context.Context, id uuid.UUID) error {
 func TestExecuteAndSave(t *testing.T) {
 	timeout := 3 * time.Second
 	tests := []struct {
-		name          string
-		task          model.Task
-		taskFunc      func(context.Context) (any, error)
-		result        any
-		errorExpected bool
+		name               string
+		task               model.Task
+		taskFunc           func(context.Context) (any, error)
+		isContextCancelled bool
+		expectedStatus     model.TaskStatus
+		expectedResult     any
+		isErrorExpected    bool
 	}{
 		{
 			name: "too long task",
@@ -60,8 +62,8 @@ func TestExecuteAndSave(t *testing.T) {
 				}
 				return "some result", nil
 			},
-			result:        "some result",
-			errorExpected: true,
+			expectedStatus:  model.TaskStatusFailed,
+			isErrorExpected: true,
 		},
 		{
 			name: "default task",
@@ -77,8 +79,9 @@ func TestExecuteAndSave(t *testing.T) {
 				}
 				return "default result", nil
 			},
-			result:        "default result",
-			errorExpected: false,
+			expectedStatus:  model.TaskStatusSuccess,
+			expectedResult:  "default result",
+			isErrorExpected: false,
 		},
 		{
 			name: "task with error",
@@ -89,8 +92,33 @@ func TestExecuteAndSave(t *testing.T) {
 			taskFunc: func(ctx context.Context) (any, error) {
 				return nil, assert.AnError
 			},
-			result:        nil,
-			errorExpected: true,
+			expectedStatus:  model.TaskStatusFailed,
+			isErrorExpected: true,
+		},
+		{
+			name: "task with panic",
+			task: model.Task{
+				ID:     uuid.New(),
+				Status: model.TaskStatusInProgress,
+			},
+			taskFunc: func(context.Context) (any, error) {
+				panic("some panic")
+			},
+			expectedStatus:  model.TaskStatusFailed,
+			isErrorExpected: true,
+		},
+		{
+			name: "task with cancelled context",
+			task: model.Task{
+				ID:     uuid.New(),
+				Status: model.TaskStatusInProgress,
+			},
+			taskFunc: func(ctx context.Context) (any, error) {
+				return nil, ctx.Err()
+			},
+			isContextCancelled: true,
+			expectedStatus:     model.TaskStatusCancelled,
+			isErrorExpected:    true,
 		},
 	}
 
@@ -101,12 +129,15 @@ func TestExecuteAndSave(t *testing.T) {
 			updatedTasks.Store(task.ID, task)
 			return nil
 		},
-	}, context.Background(), nil)
+	}, nil)
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 			taskCtx, cancel := context.WithTimeout(context.Background(), timeout)
+			if test.isContextCancelled {
+				cancel()
+			}
 			defer cancel()
 
 			service.executeAndSaveTask(taskCtx, &test.task, test.taskFunc)
@@ -114,19 +145,18 @@ func TestExecuteAndSave(t *testing.T) {
 			require.True(t, ok)
 			savedTask := saved.(*model.Task)
 			assert.NotNil(t, savedTask.FinishedAt)
-			if test.errorExpected {
-				assert.Equal(t, model.TaskStatusFailed, savedTask.Status)
+			assert.Equal(t, test.expectedStatus, savedTask.Status)
+			if test.isErrorExpected {
 				assert.Nil(t, savedTask.Result)
 				assert.NotNil(t, savedTask.Error)
 				return
 			}
-			assert.Equal(t, model.TaskStatusSuccess, savedTask.Status)
 			assert.Nil(t, savedTask.Error)
 			require.NotNil(t, savedTask.Result)
 			var result any
 			err := json.Unmarshal(*savedTask.Result, &result)
 			assert.NoError(t, err)
-			assert.Equal(t, test.result, result.(string))
+			assert.Equal(t, test.expectedResult, result)
 		})
 	}
 }

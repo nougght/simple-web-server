@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -12,11 +13,13 @@ import (
 
 type CurrencyHandler struct {
 	service model.CurrencyService
+	rootCtx context.Context
 }
 
-func NewCurrencyHandler(service model.CurrencyService) *CurrencyHandler {
+func NewCurrencyHandler(service model.CurrencyService, rootCtx context.Context) *CurrencyHandler {
 	return &CurrencyHandler{
 		service: service,
+		rootCtx: rootCtx,
 	}
 }
 
@@ -58,7 +61,7 @@ func (h *CurrencyHandler) ConvertCurrency(w http.ResponseWriter, r *http.Request
 	}
 
 	var result model.ConvertCurrencyResponse
-	result.TaskID, err = h.service.ConvertAndSaveAsync(r.Context(), params)
+	result.TaskID, err = h.service.ConvertAndSaveAsync(r.Context(), h.rootCtx, params)
 	if err != nil {
 		handleError(w, err)
 		return

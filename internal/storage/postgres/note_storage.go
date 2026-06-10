@@ -26,16 +26,13 @@ func NewNoteStorage(db *sqlx.DB) (*NoteStorage, error) {
 }
 
 // список заметок с фильтрами
-func (s *NoteStorage) GetNotes(ctx context.Context, filters model.GetNotesFilters) ([]model.Note, error) {
+func (s *NoteStorage) GetNotes(ctx context.Context, filters model.NotesFilters) ([]model.Note, error) {
 	notes := []model.Note{}
 	query := "SELECT * FROM notes WHERE 1=1"
 
-	c := 0
 	args := make([]interface{}, 0)
-	// добавляем фильтры если они есть
 	if filters.Header != nil {
-		c++
-		query += fmt.Sprintf(" AND header = $%d", c)
+		query += " AND header = $1"
 		args = append(args, *filters.Header)
 	}
 
