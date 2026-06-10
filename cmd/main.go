@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -19,15 +20,16 @@ func main() {
 		log.Panic("Ошибка при загрузке конфигурации")
 	}
 
-	services, err := service.GetServices(config)
+	// перехват сигналов завершения работы
+	rootCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	wg := &sync.WaitGroup{}
+	services, err := service.GetServices(config, rootCtx, wg)
 	if err != nil {
 		log.Panicf("Ошибка при инициализации сервисов: %s", err.Error())
 	}
 	mux, _ := handler.GetHandlers(services)
-
-	// перехват сигналов завершения работы
-	rootCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer stop()
 
 	server := &http.Server{
 		Addr:    ":8085",
@@ -49,11 +51,15 @@ func main() {
 		log.Panic(err)
 	}
 
+	// ожидание завершения(сохранения) задач
+	wg.Wait()
+
 	// ожидание завершения shutdown
 	err = <-errChan
 	if err != nil {
 		log.Println(err)
 	}
+
 	log.Println("Сервер остановлен")
 
 }

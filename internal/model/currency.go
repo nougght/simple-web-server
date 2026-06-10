@@ -2,6 +2,8 @@ package model
 
 import (
 	"fmt"
+
+	"github.com/google/uuid"
 )
 
 type ConvertCurrencyParams struct {
@@ -26,8 +28,15 @@ func (p *ConvertCurrencyParams) Validate() error {
 	return nil
 }
 
+// ответ внешнего API
 type CurrencyRatesResponse struct {
 	Data map[string]float64 `json:"data"`
 }
 
-type ConvertCurrencyResponse map[string]float64
+// результат конвертации
+type ConvertCurrencyResult map[string]float64
+
+// ответ с указанием ID задачи
+type ConvertCurrencyResponse struct {
+	TaskID uuid.UUID `json:"task_id"`
+}

@@ -44,7 +44,7 @@ func (c *ApiClient) FetchAllNotes() ([]model.Note, error) {
 	}
 
 	var notesList []model.Note
-	if err := json.Unmarshal(raw, &notesList); err != nil {
+	if err := util.DecodeJson(raw, &notesList); err != nil {
 		return nil, err
 	}
 	return notesList, nil
@@ -71,7 +71,7 @@ func (c *ApiClient) FetchNotesByHeader(header string) ([]model.Note, error) {
 	}
 
 	var notes []model.Note
-	if err := json.Unmarshal(raw, &notes); err != nil {
+	if err := util.DecodeJson(raw, &notes); err != nil {
 		return nil, err
 	}
 	return notes, nil
@@ -96,7 +96,7 @@ func (c *ApiClient) FetchNoteByID(ID uuid.UUID) (*model.Note, error) {
 	}
 
 	var note model.Note
-	if err := json.Unmarshal(raw, &note); err != nil {
+	if err := util.DecodeJson(raw, &note); err != nil {
 		return nil, err
 	}
 	return &note, nil
@@ -122,7 +122,7 @@ func (c *ApiClient) AddNote(note *model.Note) (*model.Note, error) {
 	}
 
 	var addedNote model.Note
-	if err := json.Unmarshal(raw, &addedNote); err != nil {
+	if err := util.DecodeJson(raw, &addedNote); err != nil {
 		return nil, fmt.Errorf("json unmarshaling error: %w", err)
 	}
 
@@ -182,7 +182,7 @@ func (c *ApiClient) DeleteNote(ID uuid.UUID) error {
 }
 
 // запрос конвертации валют
-func (c *ApiClient) Convert(amount float64, baseCurrency string, targetCurrencies []string) (map[string]float64, error) {
+func (c *ApiClient) Convert(amount float64, baseCurrency string, targetCurrencies []string) (uuid.UUID, error) {
 	params := url.Values{}
 	if amount != 0 {
 		params.Add("amount", strconv.FormatFloat(amount, 'f', 3, 64))
@@ -199,6 +199,29 @@ func (c *ApiClient) Convert(amount float64, baseCurrency string, targetCurrencie
 	fmt.Printf("GET %s\n", path)
 	resp, err := http.Get(c.baseUrl + path)
 	if err != nil {
+		return uuid.Nil, err
+	}
+	defer util.CloseResponseBody(resp)
+	raw, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return uuid.Nil, err
+	}
+	fmt.Println(resp.Status)
+	if resp.StatusCode != 200 {
+		return uuid.Nil, fmt.Errorf("body: %s", string(raw))
+	}
+
+	var result model.ConvertCurrencyResponse
+	if err := util.DecodeJson(raw, &result); err != nil {
+		return uuid.Nil, err
+	}
+	return result.TaskID, nil
+}
+
+func (c *ApiClient) FetchTaskStatus(taskID uuid.UUID) (*model.TaskStatus, error) {
+	fmt.Printf("GET /task/%s/status\n", taskID.String())
+	resp, err := http.Get(fmt.Sprintf("%s/task/%s/status", c.baseUrl, taskID.String()))
+	if err != nil {
 		return nil, err
 	}
 	defer util.CloseResponseBody(resp)
@@ -210,11 +233,50 @@ func (c *ApiClient) Convert(amount float64, baseCurrency string, targetCurrencie
 	if resp.StatusCode != 200 {
 		return nil, fmt.Errorf("body: %s", string(raw))
 	}
-
-	var result map[string]float64
-	if err := json.Unmarshal(raw, &result); err != nil {
+	var status model.TaskStatus
+	if err := util.DecodeJson(raw, &status); err != nil {
 		return nil, err
 	}
-	return result, nil
+	return &status, nil
+}
 
+func (c *ApiClient) FetchTask(taskID uuid.UUID) (*model.Task, error) {
+	fmt.Printf("GET /task/%s\n", taskID.String())
+	resp, err := http.Get(fmt.Sprintf("%s/task/%s", c.baseUrl, taskID.String()))
+	if err != nil {
+		return nil, err
+	}
+	defer util.CloseResponseBody(resp)
+	raw, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println(resp.Status)
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("body: %s", string(raw))
+	}
+	var task model.Task
+	if err := util.DecodeJson(raw, &task); err != nil {
+		return nil, err
+	}
+	return &task, nil
+}
+
+func (c *ApiClient) DeleteTask(taskID uuid.UUID) error {
+	fmt.Printf("DELETE /task/%s\n", taskID.String())
+	req, _ := http.NewRequest(http.MethodDelete, fmt.Sprintf("%s/task/%s", c.baseUrl, taskID.String()), nil)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer util.CloseResponseBody(resp)
+	raw, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	fmt.Println(resp.Status)
+	if resp.StatusCode != 200 {
+		return fmt.Errorf("body: %s", string(raw))
+	}
+	return nil
 }

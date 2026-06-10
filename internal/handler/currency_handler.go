@@ -58,7 +58,7 @@ func (h *CurrencyHandler) ConvertCurrency(w http.ResponseWriter, r *http.Request
 	}
 
 	var result model.ConvertCurrencyResponse
-	result, err = h.service.ConvertCurrency(params)
+	result.TaskID, err = h.service.ConvertAndSaveAsync(r.Context(), params)
 	if err != nil {
 		handleError(w, err)
 		return

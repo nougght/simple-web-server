@@ -36,8 +36,13 @@ docker-up:
 
 
 init-storage:
-ifeq (${STORAGE_TYPE},postgres)
 	docker-compose -p simple-server -f docker/docker-compose.yml up -d --build postgres
-else
-	echo memory storage
-endif
+# ifeq (${STORAGE_TYPE},postgres)
+# 	docker-compose -p simple-server -f docker/docker-compose.yml up -d --build postgres
+# else
+# 	echo memory storage
+# endif
+
+
+run-test-client:
+	go run ./cmd/test-client/main.go
