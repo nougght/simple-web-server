@@ -56,6 +56,8 @@ func handleError(w http.ResponseWriter, err error) {
 		http.Error(w, err.Error(), http.StatusNotFound)
 	case errors.Is(err, model.ErrBadRequest):
 		http.Error(w, err.Error(), http.StatusBadRequest)
+	case errors.Is(err, model.ErrTaskBufferFull):
+		http.Error(w, err.Error(), http.StatusServiceUnavailable)
 	default:
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}

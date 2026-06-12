@@ -8,7 +8,7 @@ import (
 
 type CurrencyService interface {
 	ConvertCurrency(ctx context.Context, params *ConvertCurrencyParams) (map[string]float64, error)
-	ConvertAndSaveAsync(ctx context.Context, rootCtx context.Context, params *ConvertCurrencyParams) (uuid.UUID, error)
+	ConvertAndSaveAsync(ctx context.Context, params *ConvertCurrencyParams) (uuid.UUID, error)
 }
 
 type NoteService interface {
@@ -20,10 +20,12 @@ type NoteService interface {
 }
 
 type TaskService interface {
+	StartWorkers(ctx context.Context)
+	Stop()
 	GetTaskStatus(ctx context.Context, id uuid.UUID) (*TaskStatus, error)
 	GetTaskByID(ctx context.Context, id uuid.UUID) (*Task, error)
 	DeleteTask(ctx context.Context, id uuid.UUID) error
-	ExecuteAndSaveAsync(ctx context.Context, rootCtx context.Context, taskFunc func(context.Context) (any, error)) (uuid.UUID, error)
+	ExecuteAndSaveAsync(ctx context.Context, taskFunc func(context.Context) (any, error)) (uuid.UUID, error)
 }
 
 type Service interface {

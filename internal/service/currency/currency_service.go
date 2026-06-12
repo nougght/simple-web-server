@@ -84,8 +84,8 @@ func (s *CurrencyService) ConvertCurrency(ctx context.Context, params *model.Con
 	return s.convertCurrencyWithRates(params.Amount, rates), nil
 }
 
-func (s *CurrencyService) ConvertAndSaveAsync(ctx context.Context, rootCtx context.Context, params *model.ConvertCurrencyParams) (uuid.UUID, error) {
-	id, err := s.taskService.ExecuteAndSaveAsync(ctx, rootCtx,
+func (s *CurrencyService) ConvertAndSaveAsync(ctx context.Context, params *model.ConvertCurrencyParams) (uuid.UUID, error) {
+	id, err := s.taskService.ExecuteAndSaveAsync(ctx,
 		func(taskCtx context.Context) (any, error) {
 			return s.ConvertCurrency(taskCtx, params)
 		})

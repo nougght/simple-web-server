@@ -17,9 +17,10 @@ const (
 	TaskStatusCancelled  TaskStatus = "cancelled"
 )
 
-// таймаут для задач
 const (
-	TaskTimeout time.Duration = 30 * time.Second
+	TaskTimeout             time.Duration = 30 * time.Second
+	DefaultTaskWorkersCount               = 10
+	DefaultTaskBufferSize                 = 100
 )
 
 // асинхронная задача
