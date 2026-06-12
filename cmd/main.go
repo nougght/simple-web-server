@@ -17,8 +17,8 @@ func main() {
 	config := config.LoadConfig()
 
 	// перехват сигналов завершения работы
-	rootCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer stop()
+	rootCtx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer cancel()
 
 	httpClient := &http.Client{
 		Timeout: 10 * time.Second,
@@ -49,6 +49,7 @@ func main() {
 	log.Println("Сервер запущен")
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Println(err)
+		cancel()
 	}
 
 	// ожидание завершения shutdown
