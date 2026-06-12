@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"errors"
 	"log"
 	"net/http"
@@ -35,11 +36,11 @@ func (h *Handler) registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("DELETE /task/{id}", h.TaskHandler.DeleteTask)
 }
 
-func GetHandlers(services model.Service) (*http.ServeMux, *Handler) {
+func GetHandlers(services model.Service, rootCtx context.Context) (*http.ServeMux, *Handler) {
 	handler := Handler{
 		NoteHandler:     NewNoteHandler(services.NoteService()),
 		TaskHandler:     NewTaskHandler(services.TaskService()),
-		CurrencyHandler: NewCurrencyHandler(services.CurrencyService()),
+		CurrencyHandler: NewCurrencyHandler(services.CurrencyService(), rootCtx),
 	}
 
 	mux := http.NewServeMux()
@@ -55,6 +56,8 @@ func handleError(w http.ResponseWriter, err error) {
 		http.Error(w, err.Error(), http.StatusNotFound)
 	case errors.Is(err, model.ErrBadRequest):
 		http.Error(w, err.Error(), http.StatusBadRequest)
+	case errors.Is(err, model.ErrTaskBufferFull):
+		http.Error(w, err.Error(), http.StatusServiceUnavailable)
 	default:
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}

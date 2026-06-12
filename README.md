@@ -32,6 +32,12 @@ POSTGRES_SSLMODE=
 # переменные для получения курсов валют
 FREECURRENCY_API_URL=https://api.freecurrencyapi.com/v1/latest
 FREECURRENCY_API_KEY=fca_live_8lWYrQ3cQDWZob9q0evmwYSrRYH6mtdPU5XTMfJc
+
+# количество воркеров для асинхронных задач (по умолчанию 10)
+TASK_WORKERS_COUNT=
+
+# размер буфера для очереди асинхронных задач (по умолчанию 100)
+TASK_BUFFER_SIZE=
 ```
 
 ---
@@ -107,7 +113,7 @@ FREECURRENCY_API_KEY=fca_live_8lWYrQ3cQDWZob9q0evmwYSrRYH6mtdPU5XTMfJc
 
 - `in_progress` — задача выполняется
 - `success` — завершена успешно
-- `failed` — ошибка выполнения или окончание таймаута (7 секунд)
+- `failed` — ошибка выполнения или окончание таймаута
 - `cancelled` — отменена (устанавливается при shutdown)
 
 Эндпоинты:

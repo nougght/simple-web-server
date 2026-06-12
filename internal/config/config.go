@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"simple-server/internal/model"
+	"strconv"
 
 	"github.com/joho/godotenv"
 )
@@ -28,62 +29,70 @@ type Config struct {
 	NoteStorageType    string
 	FreecurrencyApiUrl string
 	FreecurrencyApiKey string
+	TaskWorkersCount   int
+	TaskBufferSize     int
+}
+
+// получение переменной из окружения
+func getValue(key string) string {
+	value, exists := os.LookupEnv(key)
+	if !exists {
+		panic("env variable not found - " + key)
+	}
+	return value
+}
+
+// получение необязательной переменной типа int из окружения со значением по умолчанию
+func getOptionalInt(key string, def int) int {
+	value, exists := os.LookupEnv(key)
+	if !exists {
+		return def
+	}
+	intVal, err := strconv.Atoi(value)
+	if err != nil {
+		panic(fmt.Sprintf("invalid int env variable %s: %s", key, err))
+	}
+	return intVal
 }
 
 // загрузка конфига
-func LoadConfig() (*Config, error) {
+func LoadConfig() *Config {
 
 	// попытка загрузки .env файла
 	if err := godotenv.Load(); err != nil {
 		log.Println(err.Error())
 	}
 
-	noteStorageType, exists := os.LookupEnv("NOTE_STORAGE_TYPE")
-	if !exists {
-		return nil, fmt.Errorf("не найден тип хранилища")
-	}
+	noteStorageType := getValue("NOTE_STORAGE_TYPE")
 
 	pgConfig := &PostgresConfig{}
 	if noteStorageType != model.StorageTypePostgres && noteStorageType != model.StorageTypeMemory {
-		return nil, fmt.Errorf("неизвестный тип хранилища: %s", noteStorageType)
+		panic(fmt.Sprintf("unknown NOTE_STORAGE_TYPE value: %s", noteStorageType))
 	}
 
 	// if noteStorageType == model.StorageTypePostgres {
 	// }
 
-	pgConfig.Host, exists = os.LookupEnv("POSTGRES_HOST")
-	if !exists {
-		return nil, fmt.Errorf("не найден хост postgres")
-	}
-	pgConfig.Port, exists = os.LookupEnv("POSTGRES_PORT")
-	if !exists {
-		return nil, fmt.Errorf("не найден порт postgres")
-	}
-	pgConfig.User, exists = os.LookupEnv("POSTGRES_USER")
-	if !exists {
-		return nil, fmt.Errorf("не найден пользователь postgres")
-	}
-	pgConfig.Password, exists = os.LookupEnv("POSTGRES_PASSWORD")
-	if !exists {
-		return nil, fmt.Errorf("не найден пароль postgres")
-	}
-	pgConfig.DBName, exists = os.LookupEnv("POSTGRES_DB")
-	if !exists {
-		return nil, fmt.Errorf("не найдено имя базы данных postgres")
-	}
-	pgConfig.SSLMode, exists = os.LookupEnv("POSTGRES_SSLMODE")
-	if !exists {
-		return nil, fmt.Errorf("не найден SSLMode postgres")
+	pgConfig.Host = getValue("POSTGRES_HOST")
+	pgConfig.Port = getValue("POSTGRES_PORT")
+	pgConfig.User = getValue("POSTGRES_USER")
+	pgConfig.Password = getValue("POSTGRES_PASSWORD")
+	pgConfig.DBName = getValue("POSTGRES_DB")
+	pgConfig.SSLMode = getValue("POSTGRES_SSLMODE")
+
+	apiUrl := getValue("FREECURRENCY_API_URL")
+	apiKey := getValue("FREECURRENCY_API_KEY")
+
+	workersCount := getOptionalInt("TASK_WORKERS_COUNT", model.DefaultTaskWorkersCount)
+	if workersCount < 1 {
+		panic("TASK_WORKERS_COUNT can't be negative")
 	}
 
-	apiUrl, exists := os.LookupEnv("FREECURRENCY_API_URL")
-	if !exists {
-		return nil, fmt.Errorf("не найден api url")
+	bufferSize := getOptionalInt("TASK_BUFFER_SIZE", model.DefaultTaskBufferSize)
+	if bufferSize < 1 {
+		panic("TASK_BUFFER_SIZE can't be negative")
 	}
-	apiKey, exists := os.LookupEnv("FREECURRENCY_API_KEY")
-	if !exists {
-		return nil, fmt.Errorf("не найден api ключ")
-	}
-
-	return &Config{Postgres: pgConfig, NoteStorageType: noteStorageType, FreecurrencyApiUrl: apiUrl, FreecurrencyApiKey: apiKey}, nil
+	return &Config{Postgres: pgConfig, NoteStorageType: noteStorageType, FreecurrencyApiUrl: apiUrl, FreecurrencyApiKey: apiKey,
+		TaskWorkersCount: workersCount,
+		TaskBufferSize:   bufferSize}
 }

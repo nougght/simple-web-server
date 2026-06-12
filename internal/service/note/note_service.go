@@ -40,7 +40,7 @@ func (s *NoteService) AddNote(ctx context.Context, note *model.Note) (*model.Not
 	return created, nil
 }
 
-func (s *NoteService) GetNotes(ctx context.Context, filters model.GetNotesFilters) ([]model.Note, error) {
+func (s *NoteService) GetNotes(ctx context.Context, filters model.NotesFilters) ([]model.Note, error) {
 	if filters.Header != nil {
 		if err := s.validateHeader(*filters.Header); err != nil {
 			return nil, err

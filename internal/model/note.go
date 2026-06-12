@@ -7,7 +7,7 @@ const (
 )
 
 // необязательные фильтры для получения заметок
-type GetNotesFilters struct {
+type NotesFilters struct {
 	Header *string
 }
 

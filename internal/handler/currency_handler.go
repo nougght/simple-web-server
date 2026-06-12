@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -12,11 +13,13 @@ import (
 
 type CurrencyHandler struct {
 	service model.CurrencyService
+	rootCtx context.Context
 }
 
-func NewCurrencyHandler(service model.CurrencyService) *CurrencyHandler {
+func NewCurrencyHandler(service model.CurrencyService, rootCtx context.Context) *CurrencyHandler {
 	return &CurrencyHandler{
 		service: service,
+		rootCtx: rootCtx,
 	}
 }
 

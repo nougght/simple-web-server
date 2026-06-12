@@ -13,13 +13,15 @@ type CurrencyService interface {
 
 type NoteService interface {
 	AddNote(ctx context.Context, note *Note) (*Note, error)
-	GetNotes(ctx context.Context, filters GetNotesFilters) ([]Note, error)
+	GetNotes(ctx context.Context, filters NotesFilters) ([]Note, error)
 	GetNoteByID(ctx context.Context, noteID uuid.UUID) (*Note, error)
 	UpdateNote(ctx context.Context, note *Note) error
 	DeleteNote(ctx context.Context, noteID uuid.UUID) error
 }
 
 type TaskService interface {
+	StartWorkers(ctx context.Context)
+	Stop()
 	GetTaskStatus(ctx context.Context, id uuid.UUID) (*TaskStatus, error)
 	GetTaskByID(ctx context.Context, id uuid.UUID) (*Task, error)
 	DeleteTask(ctx context.Context, id uuid.UUID) error

@@ -39,12 +39,11 @@ func (s *NoteStorage) AddNote(ctx context.Context, note *model.Note) (*model.Not
 	return note, nil
 }
 
-func (s *NoteStorage) GetNotes(ctx context.Context, filters model.GetNotesFilters) ([]model.Note, error) {
+func (s *NoteStorage) GetNotes(ctx context.Context, filters model.NotesFilters) ([]model.Note, error) {
 	notesList := make([]model.Note, 0, len(s.notes))
 	s.mtx.RLock()
-	headerFilterExists := filters.Header != nil
 	for _, note := range s.notes {
-		if headerFilterExists && note.Header != *filters.Header {
+		if filters.Header != nil && note.Header != *filters.Header {
 			continue
 		}
 		notesList = append(notesList, note)
