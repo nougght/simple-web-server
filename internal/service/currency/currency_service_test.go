@@ -8,13 +8,14 @@ import (
 	"simple-server/internal/model"
 	"simple-server/internal/util"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestConvertCurrencyWithRates(t *testing.T) {
-	service := NewCurrencyService(&config.Config{}, nil)
+	service := NewCurrencyService(&config.Config{}, nil, nil)
 
 	tests := []struct {
 		name     string
@@ -43,7 +44,7 @@ func TestConvertCurrencyWithRates(t *testing.T) {
 
 func TestRequestCurrencyRates(t *testing.T) {
 	rates := map[string]float64{"USD": 0.012, "EUR": 0.011}
-
+	requestTimeout := 2 * time.Second
 	tests := []struct {
 		name             string
 		baseCurrency     string
@@ -87,6 +88,10 @@ func TestRequestCurrencyRates(t *testing.T) {
 				t.Fatalf("failed to write response: %s", err)
 			}
 		}, nil, true},
+		{"too long request", "RUB", []string{"USD", "EUR"}, context.Background(),
+			func(w http.ResponseWriter, r *http.Request) {
+				time.Sleep(requestTimeout + time.Millisecond*100)
+			}, nil, true},
 	}
 
 	for _, test := range tests {
@@ -94,7 +99,8 @@ func TestRequestCurrencyRates(t *testing.T) {
 			t.Parallel()
 			server := httptest.NewServer(test.serverHandler)
 			defer server.Close()
-			service := NewCurrencyService(&config.Config{FreecurrencyApiUrl: server.URL, FreecurrencyApiKey: "test-api-key"}, nil)
+			service := NewCurrencyService(&config.Config{FreecurrencyApiUrl: server.URL, FreecurrencyApiKey: "test-api-key"},
+				&http.Client{Timeout: requestTimeout}, nil)
 			result, err := service.requestCurrencyRates(test.context, test.baseCurrency, test.targetCurrencies)
 			if test.isErrorExpected {
 				assert.Error(t, err)

@@ -83,7 +83,7 @@ func (h *NoteHandler) GetNotes(w http.ResponseWriter, r *http.Request) {
 		notesList []model.Note
 		err       error
 	)
-	filters := model.GetNotesFilters{}
+	filters := model.NotesFilters{}
 	if header := r.URL.Query().Get(string(model.NoteFilterHeader)); header != "" {
 		filters.Header = &header
 	}

@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 	"os/signal"
-	"sync"
 	"syscall"
 	"time"
 
@@ -15,21 +14,21 @@ import (
 )
 
 func main() {
-	config, err := config.LoadConfig()
-	if err != nil {
-		log.Panic("Ошибка при загрузке конфигурации")
-	}
+	config := config.LoadConfig()
 
 	// перехват сигналов завершения работы
-	rootCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer stop()
+	rootCtx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer cancel()
 
-	wg := &sync.WaitGroup{}
-	services, err := service.GetServices(config, rootCtx, wg)
+	httpClient := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+
+	services, err := service.GetServices(config, httpClient, rootCtx)
 	if err != nil {
 		log.Panicf("Ошибка при инициализации сервисов: %s", err.Error())
 	}
-	mux, _ := handler.GetHandlers(services)
+	mux, _ := handler.GetHandlers(services, rootCtx)
 
 	server := &http.Server{
 		Addr:    ":8085",
@@ -43,16 +42,15 @@ func main() {
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 		defer cancel()
 		err := server.Shutdown(shutdownCtx)
+		services.TaskService().Stop()
 		errChan <- err
 	}()
 
 	log.Println("Сервер запущен")
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		log.Panic(err)
+		log.Println(err)
+		cancel()
 	}
-
-	// ожидание завершения(сохранения) задач
-	wg.Wait()
 
 	// ожидание завершения shutdown
 	err = <-errChan

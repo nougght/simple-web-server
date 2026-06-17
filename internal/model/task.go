@@ -17,6 +17,12 @@ const (
 	TaskStatusCancelled  TaskStatus = "cancelled"
 )
 
+const (
+	TaskTimeout             time.Duration = 30 * time.Second
+	DefaultTaskWorkersCount               = 10
+	DefaultTaskBufferSize                 = 100
+)
+
 // асинхронная задача
 type Task struct {
 	ID         uuid.UUID        `json:"id" db:"id"`

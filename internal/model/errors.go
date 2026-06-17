@@ -5,5 +5,6 @@ import "errors"
 var (
 	ErrNotFound = errors.New("not found")
 	// ErrAlreadyExists = errors.New("already exists")
-	ErrBadRequest = errors.New("bad request")
+	ErrBadRequest     = errors.New("bad request")
+	ErrTaskBufferFull = errors.New("too many tasks")
 )

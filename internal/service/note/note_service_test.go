@@ -61,14 +61,14 @@ func TestGetNotes(t *testing.T) {
 	headers := []string{"header1", "header3843", " "}
 	tests := []struct {
 		name          string
-		filters       model.GetNotesFilters
+		filters       model.NotesFilters
 		expectedCount int
 		errorExpected bool
 	}{
-		{"no filters", model.GetNotesFilters{}, 2, false},
-		{"filter by header", model.GetNotesFilters{Header: &headers[0]}, 1, false},
-		{"filter by header that doesn't exist", model.GetNotesFilters{Header: &headers[1]}, 0, false},
-		{"filter by empty header", model.GetNotesFilters{Header: &headers[2]}, 0, true},
+		{"no filters", model.NotesFilters{}, 2, false},
+		{"filter by header", model.NotesFilters{Header: &headers[0]}, 1, false},
+		{"filter by header that doesn't exist", model.NotesFilters{Header: &headers[1]}, 0, false},
+		{"filter by empty header", model.NotesFilters{Header: &headers[2]}, 0, true},
 	}
 
 	for _, test := range tests {
