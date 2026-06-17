@@ -20,7 +20,7 @@ type Service struct {
 	taskService     model.TaskService
 }
 
-func GetServices(config *config.Config, httpClient *http.Client, rootCtx context.Context) (*Service, error) {
+func GetServices(config *config.Config, httpClient *http.Client) (*Service, error) {
 	// общее подключение к БД
 	db, err := postgres.ConnectDB(config.Postgres)
 	if err != nil {
@@ -42,13 +42,20 @@ func GetServices(config *config.Config, httpClient *http.Client, rootCtx context
 	taskStorage := postgres.NewTaskStorage(db)
 
 	taskService := task.NewTaskService(config, taskStorage)
-	taskService.StartWorkers(rootCtx)
 
 	return &Service{
 		noteService:     note.NewNoteService(config, noteStorage),
 		currencyService: currency.NewCurrencyService(config, httpClient, taskService),
 		taskService:     taskService,
 	}, nil
+}
+
+func (s *Service) StartSubProcesses(ctx context.Context) {
+	s.taskService.StartWorkers(ctx)
+}
+
+func (s *Service) StopSubProcesses() {
+	s.taskService.Stop()
 }
 
 func (s *Service) NoteService() model.NoteService {

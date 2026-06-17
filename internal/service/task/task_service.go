@@ -2,6 +2,7 @@ package task
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"simple-server/internal/config"
@@ -158,7 +159,7 @@ func (s *TaskService) executeAndSaveTask(ctx context.Context, task *model.Task,
 
 	if taskErr != nil {
 		// если контекст отменен, устанавливаем статус cancelled для задачи
-		if ctx.Err() == context.Canceled {
+		if errors.Is(ctx.Err(), context.Canceled) {
 			task.Status = model.TaskStatusCancelled
 			task.SetError("task cancelled")
 			return

@@ -24,11 +24,11 @@ func main() {
 		Timeout: 10 * time.Second,
 	}
 
-	services, err := service.GetServices(config, httpClient, rootCtx)
+	services, err := service.GetServices(config, httpClient)
 	if err != nil {
 		log.Panicf("Ошибка при инициализации сервисов: %s", err.Error())
 	}
-	mux, _ := handler.GetHandlers(services, rootCtx)
+	mux, _ := handler.GetHandlers(services)
 
 	server := &http.Server{
 		Addr:    ":8085",
@@ -42,11 +42,12 @@ func main() {
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 		defer cancel()
 		err := server.Shutdown(shutdownCtx)
-		services.TaskService().Stop()
+		services.StopSubProcesses()
 		errChan <- err
 	}()
 
 	log.Println("Сервер запущен")
+	services.StartSubProcesses(rootCtx)
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Println(err)
 		cancel()
