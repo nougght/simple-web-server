@@ -6,6 +6,7 @@ import (
 	"os"
 	"simple-server/internal/model"
 	"strconv"
+	"time"
 
 	"github.com/joho/godotenv"
 )
@@ -31,6 +32,7 @@ type Config struct {
 	FreecurrencyApiKey string
 	TaskWorkersCount   int
 	TaskBufferSize     int
+	TaskPollingPeriod  time.Duration
 }
 
 // получение переменной из окружения
@@ -92,7 +94,12 @@ func LoadConfig() *Config {
 	if bufferSize < 1 {
 		panic("TASK_BUFFER_SIZE can't be negative")
 	}
+
+	pollingPeriod := model.TaskPollingPeriod
+
 	return &Config{Postgres: pgConfig, NoteStorageType: noteStorageType, FreecurrencyApiUrl: apiUrl, FreecurrencyApiKey: apiKey,
-		TaskWorkersCount: workersCount,
-		TaskBufferSize:   bufferSize}
+		TaskWorkersCount:  workersCount,
+		TaskBufferSize:    bufferSize,
+		TaskPollingPeriod: pollingPeriod,
+	}
 }

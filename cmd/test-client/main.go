@@ -23,9 +23,9 @@ func main() {
 
 	log.Println("Добавление новой заметки")
 	newNotes := []model.Note{
-		{Header: "header123", Body: "some body"},
-		{Header: "header123", Body: "another body"},
-		{Header: "other", Body: ""},
+		{Header: "header123332432", Body: "some body"},
+		{Header: "header123332432", Body: "another body"},
+		{Header: "header348384237", Body: ""},
 	}
 	var addedNotes []*model.Note
 	for _, newNote := range newNotes {
@@ -50,7 +50,7 @@ func main() {
 			fmt.Printf("Ошибка: %s\n", err.Error())
 		} else {
 			fmt.Println(result)
-			if !slices.ContainsFunc(result, func(e model.Note) bool { return e.ID == addedNotes[2].ID }) {
+			if len(result) != 1 || result[0].ID != addedNotes[2].ID {
 				fmt.Print("Ответ не совпадает с ожидаемым\n\n")
 			} else {
 				fmt.Print("Ожидаемый результат\n\n")
@@ -95,6 +95,17 @@ func main() {
 				fmt.Printf("Заметка не удалена: %v\n\n", note)
 			}
 		}
+
+		if err := api.DeleteNote(addedNotes[1].ID); err != nil {
+			fmt.Printf("Ошибка: %s\n", err.Error())
+		} else {
+			if note, err := api.FetchNoteByID(addedNotes[1].ID); err != nil {
+				fmt.Printf("Ошибка (ожидаемо после удаления): %s\n", err.Error())
+			} else {
+				fmt.Printf("Заметка не удалена: %v\n\n", note)
+			}
+		}
+
 	}
 
 	log.Println("Конвертация валют")
@@ -114,13 +125,13 @@ func main() {
 			break
 		}
 		log.Printf("Статус задачи: %s\n", *status)
-		if *status != model.TaskStatusInProgress {
+		if *status != model.TaskStatusInProgress && *status != model.TaskStatusPending {
 			break
 		}
 
 		time.Sleep(time.Second)
 	}
-	if status != nil && *status != model.TaskStatusInProgress {
+	if status != nil && *status != model.TaskStatusInProgress && *status != model.TaskStatusPending {
 		task, err := api.FetchTask(taskID)
 		if err != nil {
 			fmt.Printf("Ошибка: %s\n", err.Error())

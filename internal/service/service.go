@@ -43,11 +43,17 @@ func GetServices(config *config.Config, httpClient *http.Client) (*Service, erro
 
 	taskService := task.NewTaskService(config, taskStorage)
 
-	return &Service{
+	s := Service{
 		noteService:     note.NewNoteService(config, noteStorage),
 		currencyService: currency.NewCurrencyService(config, httpClient, taskService),
 		taskService:     taskService,
-	}, nil
+	}
+	s.registerTaskHandlers()
+	return &s, nil
+}
+
+func (s *Service) registerTaskHandlers() {
+	s.taskService.RegisterHandler(model.TaskTypeCurrencyConversion, s.currencyService.ConvertCurrencyHandler)
 }
 
 func (s *Service) StartSubProcesses(ctx context.Context) {
