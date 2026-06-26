@@ -1,0 +1,2 @@
+ALTER TABLE tasks DROP COLUMN type;
+ALTER TABLE tasks DROP COLUMN payload;

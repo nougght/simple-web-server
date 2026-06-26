@@ -2,6 +2,7 @@ package currency
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -84,11 +85,17 @@ func (s *CurrencyService) ConvertCurrency(ctx context.Context, params *model.Con
 	return s.convertCurrencyWithRates(params.Amount, rates), nil
 }
 
+// обработчик конвертации валют, принимающий json входные данные
+func (s *CurrencyService) ConvertCurrencyHandler(ctx context.Context, payload json.RawMessage) (any, error) {
+	var params model.ConvertCurrencyParams
+	if err := util.DecodeJson(payload, &params); err != nil {
+		return nil, fmt.Errorf("failed to decode convert currency payload: %w", err)
+	}
+	return s.ConvertCurrency(ctx, &params)
+}
+
 func (s *CurrencyService) ConvertAndSaveAsync(ctx context.Context, params *model.ConvertCurrencyParams) (uuid.UUID, error) {
-	id, err := s.taskService.ExecuteAndSaveAsync(ctx,
-		func(taskCtx context.Context) (any, error) {
-			return s.ConvertCurrency(taskCtx, params)
-		})
+	id, err := s.taskService.ExecuteAndSaveAsync(ctx, model.TaskTypeCurrencyConversion, params)
 	if err != nil {
 		return uuid.Nil, fmt.Errorf("failed to run async task: %w", err)
 	}

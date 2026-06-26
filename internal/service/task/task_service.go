@@ -2,6 +2,7 @@ package task
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"simple-server/internal/config"
@@ -14,58 +15,134 @@ import (
 	"github.com/google/uuid"
 )
 
-// объединяет модель задачи и функцию для выполнения
-type job struct {
-	Task model.Task
-	Func func(context.Context) (any, error)
-}
-
 type TaskService struct {
 	config         *config.Config
 	storage        TaskStorage
 	wg             sync.WaitGroup
 	once           sync.Once
-	mu             sync.Mutex
 	isShuttingDown atomic.Bool
-	jobs           chan *job // канал с очередью задач
+	tasks          chan *model.Task // канал с очередью задач
+	handlers       sync.Map         // функции-обработчики для разных типов задач
+	pollerDone     chan struct{}
+	cancel         context.CancelFunc
 }
 
 func NewTaskService(cfg *config.Config, storage TaskStorage) *TaskService {
 	return &TaskService{config: cfg, storage: storage,
-		jobs: make(chan *job, cfg.TaskBufferSize)}
+		tasks:      make(chan *model.Task, cfg.TaskBufferSize),
+		handlers:   sync.Map{},
+		pollerDone: make(chan struct{}),
+	}
+}
+
+// список задач из канала
+func (s *TaskService) getTasksFromChannel() []model.Task {
+	var tasks []model.Task
+	for len(s.tasks) > 0 {
+		task := <-s.tasks
+		tasks = append(tasks, *task)
+	}
+	return tasks
+}
+
+// обновляет статусы оставшихся задач в БД
+func (s *TaskService) updateRemainingTasks(unsent []model.Task) {
+	ids := []uuid.UUID{}
+	tasks := append(unsent, s.getTasksFromChannel()...)
+	for _, task := range tasks {
+		ids = append(ids, task.ID)
+	}
+	dbCtx, dbCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer dbCancel()
+
+	s.updateTaskStatuses(dbCtx, model.TaskStatusPending, ids)
+}
+
+// периодический опрос БД на наличие новых задач с учетом доступного места в буфере
+// при shutdown помечает задачи, которые остались в канале и в списке новых задач как pending
+func (s *TaskService) startPolling(ctx context.Context, period time.Duration, pollerDone chan struct{}) {
+	ticker := time.NewTicker(period)
+	go func() {
+		defer close(pollerDone)
+		for {
+			select {
+			case <-ticker.C:
+				queueSize := len(s.tasks)
+				newTasks, err := s.storage.GetPendingTasksWithLimit(ctx, uint(s.config.TaskBufferSize-queueSize))
+				if err != nil {
+					log.Printf("failed to get pending tasks: %s", err.Error())
+					continue
+				}
+
+				for i := range newTasks {
+					select {
+					// может заблокироваться если количество задач в канале увеличилось
+					case s.tasks <- &newTasks[i]:
+					case <-ctx.Done():
+						// возвращаем оставшиеся задачи в статус pending
+						ticker.Stop()
+						s.updateRemainingTasks(newTasks[i:])
+						return
+					}
+				}
+				if len(newTasks) > 0 {
+					log.Printf("queue size = %d, found %d new tasks", queueSize, len(newTasks))
+				}
+			case <-ctx.Done():
+				ticker.Stop()
+				s.updateRemainingTasks([]model.Task{})
+				return
+			}
+		}
+	}()
+}
+
+// регистрация функции-обработчика для конкретного типа задачи
+func (s *TaskService) RegisterHandler(taskType model.TaskType, handler model.TaskHandler) {
+	s.handlers.Store(taskType, handler)
 }
 
 // запуск горутин с передачей контекста
 func (s *TaskService) StartWorkers(ctx context.Context) {
+	ctx, s.cancel = context.WithCancel(ctx)
+	s.startPolling(ctx, s.config.TaskPollingPeriod, s.pollerDone)
+
 	for i := 0; i < s.config.TaskWorkersCount; i++ {
 		s.wg.Add(1)
 		go func() {
 			defer s.wg.Done()
-
-			// не останавливается при ctx.Done(), чтобы после закрытия канала обработались оставшиеся задачи
-			for job := range s.jobs {
-				// контекст с таймаутом для задачи
-				taskCtx, cancel := context.WithTimeout(ctx, model.TaskTimeout)
-
-				s.executeAndSaveTask(taskCtx, &job.Task, job.Func)
-				cancel()
-
-				log.Printf("async task %s completed", job.Task.ID)
-
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case task, ok := <-s.tasks:
+					if !ok {
+						return
+					}
+					// контекст с таймаутом для задачи
+					taskCtx, cancel := context.WithTimeout(ctx, model.TaskTimeout)
+					s.executeAndSaveTask(taskCtx, task)
+					cancel()
+					log.Printf("async task %s completed", task.ID)
+				}
 			}
 		}()
 	}
 }
 
-// закрытие канала и ожидание завершения задач
+// остановка сервиса и завершение выполнения задач
 //
-// если вызван до отмены контекста, задачи будут выполнены в обычном режиме
-// если вызван после отмены контекста, задачи будут помечены как cancelled
+// отменяет контекст(дочерний от rootCtx) и закрывает канал с задачами;
+// задачи в очереди возвращаются в статус pending;
+// задачи в воркерах помечаются как cancelled
 func (s *TaskService) Stop() {
 	s.isShuttingDown.Store(true)
-	s.mu.Lock()
-	s.once.Do(func() { close(s.jobs) })
-	s.mu.Unlock()
+	s.once.Do(func() {
+		s.cancel()
+		// закрываем канал после завершения записывающей горутины
+		<-s.pollerDone
+		close(s.tasks)
+	})
 	s.wg.Wait()
 }
 
@@ -109,10 +186,17 @@ func (s *TaskService) updateTask(ctx context.Context, task *model.Task) error {
 	return nil
 }
 
+func (s *TaskService) updateTaskStatuses(ctx context.Context, status model.TaskStatus, tasks []uuid.UUID) {
+
+	err := s.storage.UpdateTaskStatuses(ctx, status, tasks)
+	if err != nil {
+		log.Printf("failed to update task statuses: %s", err.Error())
+	}
+}
+
 // выполняет задачу и сохраняет результат/ошибку в БД
 // если контекст отменен, задача сохраняется со статусом cancelled
-func (s *TaskService) executeAndSaveTask(ctx context.Context, task *model.Task,
-	taskFunc func(context.Context) (any, error)) {
+func (s *TaskService) executeAndSaveTask(ctx context.Context, task *model.Task) {
 	log.Printf("starting task %s", task.ID)
 
 	task.Status = model.TaskStatusFailed
@@ -147,18 +231,27 @@ func (s *TaskService) executeAndSaveTask(ctx context.Context, task *model.Task,
 		taskErr error
 	)
 
+	val, handlerExists := s.handlers.Load(task.Type)
+	taskHandler, ok := val.(model.TaskHandler)
+	if !handlerExists || !ok {
+		task.SetFinishedAt(time.Now())
+		task.SetError(fmt.Sprintf("invalid task type: %s", task.Type))
+		log.Println(*task.Error)
+		return
+	}
+
 	select {
 	// не запускаем задачу если контекст уже отменен
 	case <-ctx.Done():
 		taskErr = context.Canceled
 	default:
-		result, taskErr = taskFunc(ctx)
+		result, taskErr = taskHandler(ctx, task.Payload)
 	}
 	task.SetFinishedAt(time.Now())
 
 	if taskErr != nil {
 		// если контекст отменен, устанавливаем статус cancelled для задачи
-		if ctx.Err() == context.Canceled {
+		if errors.Is(ctx.Err(), context.Canceled) {
 			task.Status = model.TaskStatusCancelled
 			task.SetError("task cancelled")
 			return
@@ -178,43 +271,28 @@ func (s *TaskService) executeAndSaveTask(ctx context.Context, task *model.Task,
 	task.SetResult(resultJson)
 }
 
-// добавляет задачу в очередь
-func (s *TaskService) ExecuteAndSaveAsync(ctx context.Context, taskFunc func(context.Context) (any, error)) (uuid.UUID, error) {
+// добавляет новую задачу в БД, возвращает ее ID
+func (s *TaskService) ExecuteAndSaveAsync(ctx context.Context, taskType model.TaskType, payload any) (uuid.UUID, error) {
 	// не принимаем новые задачи после отмены
 	if s.isShuttingDown.Load() {
 		return uuid.Nil, fmt.Errorf("service is shutting down")
 	}
 
-	task := &model.Task{Status: model.TaskStatusInProgress}
-	var err error
+	// проверка наличия обработчика для типа задачи
+	if _, ok := s.handlers.Load(taskType); !ok {
+		return uuid.Nil, fmt.Errorf("invalid task type '%s': %w", taskType, model.ErrBadRequest)
+	}
+
+	payloadJson, err := util.EncodeJson(payload)
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("failed to encode payload: %w", err)
+	}
+
+	task := &model.Task{Status: model.TaskStatusPending, Type: taskType, Payload: payloadJson}
 	task, err = s.createTask(ctx, task)
 	if err != nil {
 		return uuid.Nil, err
 	}
 
-	// проверка и отправка задачи в канал с блокировкой
-	s.mu.Lock()
-	if s.isShuttingDown.Load() {
-		s.mu.Unlock()
-		if err := s.DeleteTask(ctx, task.ID); err != nil {
-			log.Printf("failed to delete task %s: %s", task.ID, err.Error())
-		}
-		return uuid.Nil, fmt.Errorf("service is shutting down")
-	}
-
-	// отправляем job с задачей и функцией через канал
-	// если буффер канала заполнен - удаляем созданную запись и возвращаем ошибку
-	select {
-	case s.jobs <- &job{Task: *task, Func: taskFunc}:
-		s.mu.Unlock()
-		log.Printf("task added, buffer size = %d", len(s.jobs))
-		return task.ID, nil
-	default:
-		s.mu.Unlock()
-		log.Print("task buffer full")
-		if err := s.DeleteTask(ctx, task.ID); err != nil {
-			log.Printf("failed to delete task %s: %s", task.ID, err.Error())
-		}
-		return uuid.Nil, model.ErrTaskBufferFull
-	}
+	return task.ID, nil
 }
